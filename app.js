@@ -14,6 +14,7 @@ const STATE = {
 document.addEventListener('DOMContentLoaded', () => {
     initTheme();
     initNavigation();
+    initAuth();
     initSearch();
     initHistory();
     initReader();
@@ -41,6 +42,127 @@ function initTheme() {
 function updateThemeIcon() {
     const icon = document.querySelector('#themeToggle i');
     icon.className = STATE.theme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+}
+
+// --- Auth & Cloud Sync ---
+function initAuth() {
+    const loginBtn = document.getElementById('loginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    loginBtn.addEventListener('click', signInWithGoogle);
+    logoutBtn.addEventListener('click', signOut);
+
+    // Listen to auth state
+    if (typeof auth !== 'undefined') {
+        auth.onAuthStateChanged(handleAuthChange);
+    }
+}
+
+async function signInWithGoogle() {
+    try {
+        await auth.signInWithPopup(googleProvider);
+    } catch (err) {
+        if (err.code !== 'auth/popup-closed-by-user') {
+            showToast('Sign-in failed: ' + err.message, 'error');
+        }
+    }
+}
+
+async function signOut() {
+    try {
+        await auth.signOut();
+        showToast('Signed out. Using local storage only.', 'success');
+    } catch (err) {
+        showToast('Sign-out failed', 'error');
+    }
+}
+
+function handleAuthChange(user) {
+    const loginBtn = document.getElementById('loginBtn');
+    const profile = document.getElementById('userProfile');
+
+    if (user) {
+        loginBtn.classList.add('hidden');
+        profile.classList.remove('hidden');
+        document.getElementById('userAvatar').src = user.photoURL || '';
+        document.getElementById('userName').textContent = user.displayName?.split(' ')[0] || 'User';
+        STATE.userId = user.uid;
+        loadFromCloud();
+    } else {
+        loginBtn.classList.remove('hidden');
+        profile.classList.add('hidden');
+        STATE.userId = null;
+    }
+}
+
+async function loadFromCloud() {
+    if (!STATE.userId) return;
+    setSyncStatus('syncing');
+
+    try {
+        const doc = await db.collection('users').doc(STATE.userId).get();
+        if (doc.exists) {
+            const cloudData = doc.data();
+            const cloudWords = cloudData.words || [];
+            const cloudStreak = cloudData.streak || STATE.streak;
+
+            // Merge: cloud + local, deduplicate by word
+            const merged = mergeWordLists(STATE.words, cloudWords);
+            STATE.words = merged;
+            STATE.streak = cloudStreak;
+            localStorage.setItem('vocabWords', JSON.stringify(STATE.words));
+            localStorage.setItem('vocabStreak', JSON.stringify(STATE.streak));
+
+            showToast(`Synced ${STATE.words.length} words from cloud`, 'success');
+        } else {
+            // First time: push local data to cloud
+            await saveToCloud();
+            showToast('Local data uploaded to cloud', 'success');
+        }
+        setSyncStatus('synced');
+    } catch (err) {
+        setSyncStatus('offline');
+        showToast('Cloud sync failed, using local data', 'error');
+    }
+}
+
+async function saveToCloud() {
+    if (!STATE.userId) return;
+    setSyncStatus('syncing');
+
+    try {
+        await db.collection('users').doc(STATE.userId).set({
+            words: STATE.words,
+            streak: STATE.streak,
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+        setSyncStatus('synced');
+    } catch (err) {
+        setSyncStatus('offline');
+    }
+}
+
+function mergeWordLists(local, cloud) {
+    const map = new Map();
+    // Cloud first (older baseline)
+    cloud.forEach(w => map.set(w.word.toLowerCase(), w));
+    // Local overwrites with newer data
+    local.forEach(w => {
+        const key = w.word.toLowerCase();
+        const existing = map.get(key);
+        if (!existing || new Date(w.dateAdded) > new Date(existing.dateAdded)) {
+            map.set(key, w);
+        }
+    });
+    return [...map.values()].sort((a, b) => new Date(a.dateAdded) - new Date(b.dateAdded));
+}
+
+function setSyncStatus(status) {
+    const el = document.getElementById('syncStatus');
+    el.className = 'sync-status ' + (status === 'syncing' ? 'syncing' : status === 'offline' ? 'offline' : '');
+    el.title = status === 'synced' ? 'Synced to cloud' : status === 'syncing' ? 'Syncing...' : 'Offline';
+    const icon = el.querySelector('i');
+    icon.className = status === 'synced' ? 'fas fa-cloud' : status === 'syncing' ? 'fas fa-sync fa-spin' : 'fas fa-cloud-slash';
 }
 
 // --- Navigation ---
@@ -1008,6 +1130,11 @@ function updateStreak() {
 // --- Utilities ---
 function saveWords() {
     localStorage.setItem('vocabWords', JSON.stringify(STATE.words));
+    // Debounced cloud sync
+    if (STATE.userId) {
+        clearTimeout(STATE._syncTimer);
+        STATE._syncTimer = setTimeout(() => saveToCloud(), 2000);
+    }
 }
 
 function showToast(message, type = '') {

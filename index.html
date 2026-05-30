@@ -39,9 +39,26 @@
                 <i class="fas fa-chart-bar"></i> Stats
             </a>
         </div>
-        <button class="theme-toggle" id="themeToggle" title="Toggle dark mode">
-            <i class="fas fa-moon"></i>
-        </button>
+        <div class="nav-right">
+            <div id="userArea" class="user-area">
+                <button id="loginBtn" class="btn btn-outline btn-sm">
+                    <i class="fab fa-google"></i> Sign In
+                </button>
+                <div id="userProfile" class="user-profile hidden">
+                    <img id="userAvatar" class="user-avatar" src="" alt="">
+                    <span id="userName" class="user-name"></span>
+                    <div class="sync-status" id="syncStatus" title="Synced">
+                        <i class="fas fa-cloud"></i>
+                    </div>
+                    <button id="logoutBtn" class="btn-icon" title="Sign out">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+            <button class="theme-toggle" id="themeToggle" title="Toggle dark mode">
+                <i class="fas fa-moon"></i>
+            </button>
+        </div>
     </nav>
 
     <!-- Main Content -->
@@ -527,6 +544,11 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
