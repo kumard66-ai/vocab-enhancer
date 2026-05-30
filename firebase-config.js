@@ -3,12 +3,12 @@
 // https://console.firebase.google.com → Your Project → Project Settings → Web App
 
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyA3qKeqlsLu2XLJB7YL-Z_eaLK85a9gnx0",
+    authDomain: "vocabvault-30eca.firebaseapp.com",
+    projectId: "vocabvault-30eca",
+    storageBucket: "vocabvault-30eca.firebasestorage.app",
+    messagingSenderId: "228496318191",
+    appId: "1:228496318191:web:c828a6ca9045f6e5a3851a"
 };
 
 // Initialize Firebase
