@@ -336,8 +336,25 @@ function parseCambridge(doc, word) {
         }
     });
 
+    // Phrases/Idioms
+    const phrases = [];
+    doc.querySelectorAll('.phrase-title, .idiom-title, .dphrase-title').forEach(el => {
+        const phrase = el.textContent?.trim();
+        if (phrase) phrases.push(phrase);
+    });
+
+    // Synonyms/Antonyms
+    const synonyms = [];
+    const antonyms = [];
+    doc.querySelectorAll('.synonyms .item, .thes .item').forEach(el => {
+        synonyms.push(el.textContent?.trim());
+    });
+    doc.querySelectorAll('.opposites .item').forEach(el => {
+        antonyms.push(el.textContent?.trim());
+    });
+
     if (meanings.length === 0) throw new Error('No meanings');
-    return buildStandardResult(word, phonetic, audio, meanings);
+    return buildStandardResult(word, phonetic, audio, meanings, synonyms, antonyms, phrases);
 }
 
 function parseOxford(doc, word) {
@@ -355,8 +372,25 @@ function parseOxford(doc, word) {
         }
     });
 
+    // Phrases/Idioms
+    const phrases = [];
+    doc.querySelectorAll('.idm-g .idm, .pv-g .pv').forEach(el => {
+        const phrase = el.textContent?.trim();
+        if (phrase) phrases.push(phrase);
+    });
+
+    // Synonyms
+    const synonyms = [];
+    const antonyms = [];
+    doc.querySelectorAll('.synonyms a, .opp a').forEach(el => {
+        synonyms.push(el.textContent?.trim());
+    });
+    doc.querySelectorAll('.opp a').forEach(el => {
+        antonyms.push(el.textContent?.trim());
+    });
+
     if (meanings.length === 0) throw new Error('No meanings');
-    return buildStandardResult(word, phonetic, audio, meanings);
+    return buildStandardResult(word, phonetic, audio, meanings, synonyms, antonyms, phrases);
 }
 
 function parseLongman(doc, word) {
@@ -375,8 +409,25 @@ function parseLongman(doc, word) {
         }
     });
 
+    // Phrases/Collocations from Longman
+    const phrases = [];
+    doc.querySelectorAll('.ColloEnt, .PHRASEOL .PHRASE').forEach(el => {
+        const phrase = el.textContent?.trim();
+        if (phrase) phrases.push(phrase);
+    });
+
+    // Thesaurus/Synonyms
+    const synonyms = [];
+    const antonyms = [];
+    doc.querySelectorAll('.SYN .synt, .THESEntry .entryhead').forEach(el => {
+        synonyms.push(el.textContent?.trim());
+    });
+    doc.querySelectorAll('.OPP .synt').forEach(el => {
+        antonyms.push(el.textContent?.trim());
+    });
+
     if (meanings.length === 0) throw new Error('No meanings');
-    return buildStandardResult(word, phonetic, audioSrc, meanings);
+    return buildStandardResult(word, phonetic, audioSrc, meanings, synonyms, antonyms, phrases);
 }
 
 function parseMerriam(doc, word) {
@@ -397,8 +448,25 @@ function parseMerriam(doc, word) {
         });
     });
 
+    // Synonyms & Antonyms from Merriam
+    const synonyms = [];
+    const antonyms = [];
+    doc.querySelectorAll('.thes-list.syn-list .thes-word, .synonyms_list a').forEach(el => {
+        synonyms.push(el.textContent?.trim());
+    });
+    doc.querySelectorAll('.thes-list.ant-list .thes-word, .antonyms_list a').forEach(el => {
+        antonyms.push(el.textContent?.trim());
+    });
+
+    // Phrases
+    const phrases = [];
+    doc.querySelectorAll('.drp, .if').forEach(el => {
+        const phrase = el.textContent?.trim();
+        if (phrase && phrase.includes(' ')) phrases.push(phrase);
+    });
+
     if (meanings.length === 0) throw new Error('No meanings');
-    return buildStandardResult(word, phonetic, audioFile, meanings);
+    return buildStandardResult(word, phonetic, audioFile, meanings, synonyms, antonyms, phrases);
 }
 
 function parseVocabulary(doc, word) {
@@ -410,11 +478,17 @@ function parseVocabulary(doc, word) {
     const instances = doc.querySelectorAll('.example');
     const example = instances[0]?.textContent?.trim() || '';
 
+    // Vocabulary.com has related words
+    const synonyms = [];
+    doc.querySelectorAll('.related-words a, .synonym a').forEach(el => {
+        synonyms.push(el.textContent?.trim());
+    });
+
     const meanings = [{ partOfSpeech: '', definitions: [{ definition, example }] }];
-    return buildStandardResult(word, '', '', meanings);
+    return buildStandardResult(word, '', '', meanings, synonyms, [], []);
 }
 
-function buildStandardResult(word, phonetic, audio, meanings) {
+function buildStandardResult(word, phonetic, audio, meanings, synonyms = [], antonyms = [], phrases = []) {
     // Consolidate meanings by part of speech
     const grouped = {};
     meanings.forEach(m => {
@@ -428,6 +502,9 @@ function buildStandardResult(word, phonetic, audio, meanings) {
         phonetic: phonetic ? `/${phonetic}/` : '',
         phonetics: audio ? [{ text: phonetic, audio }] : [],
         meanings: Object.values(grouped),
+        _synonyms: [...new Set(synonyms.filter(Boolean))].slice(0, 10),
+        _antonyms: [...new Set(antonyms.filter(Boolean))].slice(0, 10),
+        _phrases: [...new Set(phrases.filter(Boolean))].slice(0, 10),
     };
     return result;
 }
@@ -466,10 +543,14 @@ function displayWordResult(data) {
 
     meaningsDiv.innerHTML = html;
 
+    // Merge scraped synonyms/antonyms with API ones
+    if (data._synonyms) allSynonyms.push(...data._synonyms);
+    if (data._antonyms) allAntonyms.push(...data._antonyms);
+
     // Synonyms
     const synSection = document.getElementById('resultSynonyms');
     const synList = document.getElementById('synonymsList');
-    allSynonyms = [...new Set(allSynonyms)].slice(0, 10);
+    allSynonyms = [...new Set(allSynonyms)].slice(0, 12);
     if (allSynonyms.length) {
         synSection.classList.remove('hidden');
         synList.innerHTML = allSynonyms.map(s => `<span class="tag" onclick="searchWord('${s}')">${s}</span>`).join('');
@@ -480,12 +561,23 @@ function displayWordResult(data) {
     // Antonyms
     const antSection = document.getElementById('resultAntonyms');
     const antList = document.getElementById('antonymsList');
-    allAntonyms = [...new Set(allAntonyms)].slice(0, 10);
+    allAntonyms = [...new Set(allAntonyms)].slice(0, 12);
     if (allAntonyms.length) {
         antSection.classList.remove('hidden');
         antList.innerHTML = allAntonyms.map(a => `<span class="tag" onclick="searchWord('${a}')">${a}</span>`).join('');
     } else {
         antSection.classList.add('hidden');
+    }
+
+    // Phrases/Collocations
+    const phrasesSection = document.getElementById('resultPhrases');
+    const phrasesList = document.getElementById('phrasesList');
+    const allPhrases = (data._phrases || []).slice(0, 10);
+    if (allPhrases.length) {
+        phrasesSection.classList.remove('hidden');
+        phrasesList.innerHTML = allPhrases.map(p => `<span class="tag phrase-tag">${p}</span>`).join('');
+    } else {
+        phrasesSection.classList.add('hidden');
     }
 
     // Store current word data for saving
@@ -495,8 +587,9 @@ function displayWordResult(data) {
         partOfSpeech: data.meanings[0]?.partOfSpeech || '',
         meaning: data.meanings[0]?.definitions[0]?.definition || '',
         example: data.meanings[0]?.definitions[0]?.example || '',
-        synonyms: allSynonyms.slice(0, 5),
-        antonyms: allAntonyms.slice(0, 5),
+        synonyms: allSynonyms.slice(0, 8),
+        antonyms: allAntonyms.slice(0, 8),
+        phrases: allPhrases.slice(0, 8),
         audio: data.phonetics?.find(p => p.audio)?.audio || '',
         allMeanings: data.meanings,
     };
@@ -672,6 +765,9 @@ function renderHistory() {
             <td><span class="mastery-badge ${w.partOfSpeech}">${w.partOfSpeech}</span></td>
             <td>${w.meaning}</td>
             <td><em>${w.example || '-'}</em></td>
+            <td class="td-tags">${(w.phrases || []).map(p => `<span class="mini-tag phrase-tag">${p}</span>`).join('') || '-'}</td>
+            <td class="td-tags">${(w.synonyms || []).map(s => `<span class="mini-tag syn-tag">${s}</span>`).join('') || '-'}</td>
+            <td class="td-tags">${(w.antonyms || []).map(a => `<span class="mini-tag ant-tag">${a}</span>`).join('') || '-'}</td>
             <td>${w.source ? `<a href="${getSourceUrl(w.source, w.word) || '#'}" target="_blank" class="source-link">${getSourceLabel(w.source)}</a>` : '-'}</td>
             <td>${formatDate(w.dateAdded)}</td>
             <td><span class="mastery-badge ${w.mastery}">${w.mastery}</span></td>
@@ -721,8 +817,10 @@ function exportToExcel() {
         'Part of Speech': w.partOfSpeech,
         'Meaning': w.meaning,
         'Example': w.example || '',
+        'Phrases': (w.phrases || []).join(', '),
         'Synonyms': (w.synonyms || []).join(', '),
         'Antonyms': (w.antonyms || []).join(', '),
+        'Source': w.source ? getSourceLabel(w.source) : '',
         'Date Added': formatDate(w.dateAdded),
         'Mastery': w.mastery,
     }));
