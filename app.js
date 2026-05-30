@@ -215,30 +215,53 @@ async function searchWord(word) {
     document.getElementById('resultMeanings').innerHTML = '<p style="color:var(--text-muted)">Searching...</p>';
 
     const source = document.getElementById('sourceSelect').value;
+    let data = null;
+    let usedSource = source;
 
-    try {
-        const data = await fetchWordData(word);
-        displayWordResult(data);
-
-        // If a non-API source is selected, show a reference link
-        if (source !== 'free') {
-            const sourceUrl = getSourceUrl(source, word);
-            const sourceLabel = getSourceLabel(source);
-            const refHtml = `<div class="source-reference">
-                <i class="fas fa-external-link-alt"></i>
-                Also see: <a href="${sourceUrl}" target="_blank">${sourceLabel}</a> for detailed definitions
-            </div>`;
-            document.getElementById('resultMeanings').insertAdjacentHTML('beforeend', refHtml);
+    // Try selected source first (scrape), then fall back to Free Dictionary API
+    if (source !== 'free') {
+        try {
+            data = await scrapeFromSource(source, word);
+            data._source = source;
+        } catch (e) {
+            // Scrape failed, will try API fallback
         }
-    } catch (err) {
-        // API failed — offer to open the selected source directly
+    }
+
+    // Fallback to Free Dictionary API
+    if (!data) {
+        try {
+            data = await fetchWordDataFromAPI(word);
+            data._source = 'free';
+            usedSource = 'free';
+        } catch (e) {
+            // Both failed
+        }
+    }
+
+    if (data) {
+        displayWordResult(data);
+        // Show which source was used
+        const sourceUrl = getSourceUrl(source, word);
+        const sourceLabel = getSourceLabel(source);
+        const usedLabel = getSourceLabel(data._source);
+        let refHtml = `<div class="source-reference"><i class="fas fa-info-circle"></i> Data from: <strong>${usedLabel}</strong>`;
+        if (data._source !== source && source !== 'free') {
+            refHtml += ` (${getSourceLabel(source)} scrape failed) `;
+        }
+        if (sourceUrl && source !== 'free') {
+            refHtml += ` | <a href="${sourceUrl}" target="_blank"><i class="fas fa-external-link-alt"></i> Open ${sourceLabel}</a>`;
+        }
+        refHtml += `</div>`;
+        document.getElementById('resultMeanings').insertAdjacentHTML('beforeend', refHtml);
+    } else {
         const sourceUrl = getSourceUrl(source, word);
         const sourceLabel = getSourceLabel(source);
         document.getElementById('resultMeanings').innerHTML =
-            `<p style="color:var(--danger)">Not found in Free Dictionary API.</p>
+            `<p style="color:var(--danger)">Word not found from any source.</p>
             ${sourceUrl ? `<p style="margin-top:0.75rem">
                 <a href="${sourceUrl}" target="_blank" class="btn btn-primary btn-sm">
-                    <i class="fas fa-external-link-alt"></i> Look up on ${sourceLabel}
+                    <i class="fas fa-external-link-alt"></i> Try on ${sourceLabel} directly
                 </a>
             </p>` : ''}`;
         document.getElementById('resultWord').textContent = word;
@@ -248,11 +271,165 @@ async function searchWord(word) {
     }
 }
 
-async function fetchWordData(word) {
+async function fetchWordDataFromAPI(word) {
     const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`);
     if (!response.ok) throw new Error('Not found');
     const data = await response.json();
     return data[0];
+}
+
+// Keep old name as alias for other code that calls it
+async function fetchWordData(word) {
+    return await fetchWordDataFromAPI(word);
+}
+
+// --- Source Scraping ---
+async function scrapeFromSource(source, word) {
+    const url = getSourceUrl(source, word);
+    if (!url) throw new Error('No URL');
+
+    const proxies = [
+        (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+        (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+    ];
+
+    let html = null;
+    for (const proxyFn of proxies) {
+        try {
+            const res = await fetch(proxyFn(url), { signal: AbortSignal.timeout(8000) });
+            if (res.ok) { html = await res.text(); break; }
+        } catch (e) { continue; }
+    }
+
+    if (!html) throw new Error('Fetch failed');
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    // Parse based on source
+    switch (source) {
+        case 'cambridge': return parseCambridge(doc, word);
+        case 'oxford': return parseOxford(doc, word);
+        case 'longman': return parseLongman(doc, word);
+        case 'merriam': return parseMerriam(doc, word);
+        case 'vocabulary': return parseVocabulary(doc, word);
+        default: throw new Error('No parser for source');
+    }
+}
+
+function parseCambridge(doc, word) {
+    const entry = doc.querySelector('.entry-body__el') || doc.querySelector('.pr.dictionary');
+    if (!entry) throw new Error('No entry found');
+
+    const phonetic = doc.querySelector('.ipa')?.textContent || '';
+    const audioSrc = doc.querySelector('source[type="audio/mpeg"]')?.getAttribute('src') || '';
+    const audio = audioSrc ? (audioSrc.startsWith('http') ? audioSrc : 'https://dictionary.cambridge.org' + audioSrc) : '';
+
+    const meanings = [];
+    const blocks = entry.querySelectorAll('.def-block');
+    blocks.forEach(block => {
+        const pos = block.closest('.entry-body__el')?.querySelector('.pos')?.textContent || '';
+        const definition = block.querySelector('.def')?.textContent?.trim() || '';
+        const example = block.querySelector('.eg')?.textContent?.trim() || '';
+        if (definition) {
+            meanings.push({ partOfSpeech: pos, definitions: [{ definition, example }] });
+        }
+    });
+
+    if (meanings.length === 0) throw new Error('No meanings');
+    return buildStandardResult(word, phonetic, audio, meanings);
+}
+
+function parseOxford(doc, word) {
+    const phonetic = doc.querySelector('.phon')?.textContent || '';
+    const audio = doc.querySelector('audio source')?.getAttribute('src') || '';
+
+    const meanings = [];
+    const senses = doc.querySelectorAll('.sense');
+    senses.forEach(sense => {
+        const pos = sense.closest('.entry')?.querySelector('.pos')?.textContent || '';
+        const definition = sense.querySelector('.def')?.textContent?.trim() || '';
+        const example = sense.querySelector('.x')?.textContent?.trim() || '';
+        if (definition) {
+            meanings.push({ partOfSpeech: pos, definitions: [{ definition, example }] });
+        }
+    });
+
+    if (meanings.length === 0) throw new Error('No meanings');
+    return buildStandardResult(word, phonetic, audio, meanings);
+}
+
+function parseLongman(doc, word) {
+    const phonetic = doc.querySelector('.PRON')?.textContent?.trim() || '';
+    const audioSrc = doc.querySelector('[data-src-mp3]')?.getAttribute('data-src-mp3') || '';
+
+    const meanings = [];
+    const senses = doc.querySelectorAll('.Sense');
+    senses.forEach(sense => {
+        const pos = sense.closest('.Entry')?.querySelector('.POS')?.textContent?.trim() || '';
+        const defEl = sense.querySelector('.DEF');
+        const definition = defEl?.textContent?.trim() || '';
+        const example = sense.querySelector('.EXAMPLE')?.textContent?.trim() || '';
+        if (definition) {
+            meanings.push({ partOfSpeech: pos, definitions: [{ definition, example }] });
+        }
+    });
+
+    if (meanings.length === 0) throw new Error('No meanings');
+    return buildStandardResult(word, phonetic, audioSrc, meanings);
+}
+
+function parseMerriam(doc, word) {
+    const phonetic = doc.querySelector('.pr')?.textContent?.trim() || '';
+    const audioFile = doc.querySelector('audio source')?.getAttribute('src') || '';
+
+    const meanings = [];
+    const entries = doc.querySelectorAll('.vg');
+    entries.forEach(entry => {
+        const pos = entry.closest('.entry-word-section-container')?.querySelector('.fl')?.textContent || '';
+        const defs = entry.querySelectorAll('.dtText');
+        defs.forEach(def => {
+            const definition = def.textContent?.replace(/^:\s*/, '').trim() || '';
+            const example = def.parentElement?.querySelector('.ex-sent')?.textContent?.trim() || '';
+            if (definition) {
+                meanings.push({ partOfSpeech: pos, definitions: [{ definition, example }] });
+            }
+        });
+    });
+
+    if (meanings.length === 0) throw new Error('No meanings');
+    return buildStandardResult(word, phonetic, audioFile, meanings);
+}
+
+function parseVocabulary(doc, word) {
+    const shortDef = doc.querySelector('.short')?.textContent?.trim() || '';
+    const longDef = doc.querySelector('.long')?.textContent?.trim() || '';
+    const definition = shortDef || longDef;
+    if (!definition) throw new Error('No meanings');
+
+    const instances = doc.querySelectorAll('.example');
+    const example = instances[0]?.textContent?.trim() || '';
+
+    const meanings = [{ partOfSpeech: '', definitions: [{ definition, example }] }];
+    return buildStandardResult(word, '', '', meanings);
+}
+
+function buildStandardResult(word, phonetic, audio, meanings) {
+    // Consolidate meanings by part of speech
+    const grouped = {};
+    meanings.forEach(m => {
+        const pos = m.partOfSpeech || 'unknown';
+        if (!grouped[pos]) grouped[pos] = { partOfSpeech: pos, definitions: [], synonyms: [], antonyms: [] };
+        grouped[pos].definitions.push(...m.definitions);
+    });
+
+    const result = {
+        word,
+        phonetic: phonetic ? `/${phonetic}/` : '',
+        phonetics: audio ? [{ text: phonetic, audio }] : [],
+        meanings: Object.values(grouped),
+    };
+    return result;
 }
 
 function displayWordResult(data) {
