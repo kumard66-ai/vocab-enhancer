@@ -562,6 +562,25 @@ body {
     color: white;
 }
 
+.source-reference {
+    margin-top: 1.5rem;
+    padding: 0.75rem 1rem;
+    background: var(--primary-light);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.source-reference a {
+    color: var(--primary);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.source-reference a:hover {
+    text-decoration: underline;
+}
+
 .mastery-badge {
     display: inline-block;
     padding: 0.2rem 0.6rem;

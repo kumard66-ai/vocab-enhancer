@@ -214,12 +214,33 @@ async function searchWord(word) {
     resultDiv.classList.remove('hidden');
     document.getElementById('resultMeanings').innerHTML = '<p style="color:var(--text-muted)">Searching...</p>';
 
+    const source = document.getElementById('sourceSelect').value;
+
     try {
         const data = await fetchWordData(word);
         displayWordResult(data);
+
+        // If a non-API source is selected, show a reference link
+        if (source !== 'free') {
+            const sourceUrl = getSourceUrl(source, word);
+            const sourceLabel = getSourceLabel(source);
+            const refHtml = `<div class="source-reference">
+                <i class="fas fa-external-link-alt"></i>
+                Also see: <a href="${sourceUrl}" target="_blank">${sourceLabel}</a> for detailed definitions
+            </div>`;
+            document.getElementById('resultMeanings').insertAdjacentHTML('beforeend', refHtml);
+        }
     } catch (err) {
+        // API failed — offer to open the selected source directly
+        const sourceUrl = getSourceUrl(source, word);
+        const sourceLabel = getSourceLabel(source);
         document.getElementById('resultMeanings').innerHTML =
-            `<p style="color:var(--danger)">Word not found. Try a different spelling or source.</p>`;
+            `<p style="color:var(--danger)">Not found in Free Dictionary API.</p>
+            ${sourceUrl ? `<p style="margin-top:0.75rem">
+                <a href="${sourceUrl}" target="_blank" class="btn btn-primary btn-sm">
+                    <i class="fas fa-external-link-alt"></i> Look up on ${sourceLabel}
+                </a>
+            </p>` : ''}`;
         document.getElementById('resultWord').textContent = word;
         document.getElementById('resultPhonetic').textContent = '';
         document.getElementById('resultSynonyms').classList.add('hidden');
