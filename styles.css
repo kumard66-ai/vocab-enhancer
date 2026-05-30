@@ -189,9 +189,32 @@ body {
 
 /* ===== Container & Sections ===== */
 .container {
-    max-width: 1200px;
+    max-width: 100%;
     margin: 0 auto;
     padding: 84px 2rem 2rem;
+}
+
+.section:not(#history) .section-header,
+.section:not(#history) .search-container,
+.section:not(#history) .word-card,
+.section:not(#history) .wotd-card,
+.section:not(#history) .flashcard-controls,
+.section:not(#history) .flashcard-area,
+.section:not(#history) .quiz-setup,
+.section:not(#history) .quiz-area,
+.section:not(#history) .quiz-results,
+.section:not(#history) .stats-grid,
+.section:not(#history) .stats-charts,
+.section:not(#history) .mastery-levels,
+.section:not(#history) .upload-area,
+.section:not(#history) .extracted-words,
+.section:not(#history) .manual-entry,
+.section:not(#history) .reader-toolbar,
+.section:not(#history) .reader-input-panel,
+.section:not(#history) .reader-content {
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .section {
@@ -501,34 +524,76 @@ body {
     border-radius: var(--radius);
     border: 1px solid var(--border);
     box-shadow: var(--shadow);
+    width: 100%;
 }
 
 #historyTable {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.875rem;
+    font-size: 0.8rem;
+    table-layout: fixed;
+}
+
+#historyTable th,
+#historyTable td {
+    text-align: left;
+    vertical-align: top;
+    padding: 0.6rem 0.5rem;
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 #historyTable th {
     background: var(--bg-hover);
-    padding: 0.875rem 1rem;
-    text-align: left;
     font-weight: 600;
     color: var(--text-secondary);
     text-transform: uppercase;
-    font-size: 0.75rem;
-    letter-spacing: 0.05em;
+    font-size: 0.68rem;
+    letter-spacing: 0.03em;
     white-space: nowrap;
-}
-
-#historyTable td {
-    padding: 0.75rem 1rem;
-    border-top: 1px solid var(--border);
-    vertical-align: top;
+    position: sticky;
+    top: 0;
+    z-index: 1;
 }
 
 #historyTable tr:hover td {
     background: var(--bg-hover);
+}
+
+/* Column widths */
+#historyTable th:nth-child(1),
+#historyTable td:nth-child(1) { width: 35px; }  /* # */
+#historyTable th:nth-child(2),
+#historyTable td:nth-child(2) { width: 100px; } /* Word */
+#historyTable th:nth-child(3),
+#historyTable td:nth-child(3) { width: 110px; } /* Pronunciation */
+#historyTable th:nth-child(4),
+#historyTable td:nth-child(4) { width: 80px; }  /* POS */
+#historyTable th:nth-child(5),
+#historyTable td:nth-child(5) { width: 20%; }   /* Meaning */
+#historyTable th:nth-child(6),
+#historyTable td:nth-child(6) { width: 15%; }   /* Example */
+#historyTable th:nth-child(7),
+#historyTable td:nth-child(7) { width: 12%; }   /* Phrases */
+#historyTable th:nth-child(8),
+#historyTable td:nth-child(8) { width: 10%; }   /* Synonyms */
+#historyTable th:nth-child(9),
+#historyTable td:nth-child(9) { width: 10%; }   /* Antonyms */
+#historyTable th:nth-child(10),
+#historyTable td:nth-child(10) { width: 75px; } /* Source */
+#historyTable th:nth-child(11),
+#historyTable td:nth-child(11) { width: 80px; } /* Date */
+#historyTable th:nth-child(12),
+#historyTable td:nth-child(12) { width: 65px; } /* Mastery */
+#historyTable th:nth-child(13),
+#historyTable td:nth-child(13) { width: 70px; } /* Actions */
+
+#historyTable td:nth-child(5),
+#historyTable td:nth-child(6) {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
 }
 
 .phonetic-small {
@@ -573,7 +638,9 @@ body {
 }
 
 .td-tags {
-    max-width: 160px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
 }
 
 .mini-tag {
