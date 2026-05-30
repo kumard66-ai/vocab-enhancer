@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initNavigation();
     initSearch();
     initHistory();
+    initReader();
     initUpload();
     initFlashcards();
     initQuiz();
@@ -1042,4 +1043,388 @@ function downloadFile(content, filename, type) {
     a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+}
+
+// --- Reader Module ---
+function initReader() {
+    STATE.readerZoom = 100;
+    STATE.readerSessionWords = [];
+
+    // Tab switching
+    document.querySelectorAll('.reader-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.reader-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            const tabName = tab.dataset.readerTab;
+            document.getElementById('readerFilePanel').classList.toggle('hidden', tabName !== 'file');
+            document.getElementById('readerUrlPanel').classList.toggle('hidden', tabName !== 'url');
+            document.getElementById('readerPastePanel').classList.toggle('hidden', tabName !== 'paste');
+        });
+    });
+
+    // File open
+    const dropZone = document.getElementById('readerDropZone');
+    const fileInput = document.getElementById('readerFileInput');
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        if (e.dataTransfer.files.length) openReaderFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files.length) openReaderFile(fileInput.files[0]);
+    });
+
+    // URL load
+    document.getElementById('readerLoadUrl').addEventListener('click', loadReaderUrl);
+    document.getElementById('readerUrlInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') loadReaderUrl();
+    });
+
+    // Paste text
+    document.getElementById('readerLoadPaste').addEventListener('click', loadReaderPaste);
+
+    // Zoom
+    document.getElementById('readerZoomIn').addEventListener('click', () => readerZoom(10));
+    document.getElementById('readerZoomOut').addEventListener('click', () => readerZoom(-10));
+
+    // Fullscreen
+    document.getElementById('readerFullscreen').addEventListener('click', () => {
+        const content = document.getElementById('readerContent');
+        if (content.requestFullscreen) content.requestFullscreen();
+    });
+
+    // Close
+    document.getElementById('readerClose').addEventListener('click', closeReader);
+
+    // Popup buttons
+    document.getElementById('popupClose').addEventListener('click', hideReaderPopup);
+    document.getElementById('popupLookupFull').addEventListener('click', popupFullLookup);
+    document.getElementById('popupSave').addEventListener('click', popupSaveWord);
+    document.getElementById('popupPronounce').addEventListener('click', popupPronounce);
+
+    // Save all from sidebar
+    document.getElementById('readerSaveAll').addEventListener('click', readerSaveAllSession);
+
+    // Text selection listener on reader body
+    document.getElementById('readerBody').addEventListener('mouseup', handleReaderSelection);
+
+    // Close popup when clicking outside
+    document.addEventListener('mousedown', (e) => {
+        const popup = document.getElementById('readerPopup');
+        if (!popup.classList.contains('hidden') && !popup.contains(e.target)) {
+            hideReaderPopup();
+        }
+    });
+}
+
+async function openReaderFile(file) {
+    const readerBody = document.getElementById('readerBody');
+    const readerContent = document.getElementById('readerContent');
+    const iframeContainer = document.getElementById('readerIframe');
+
+    iframeContainer.classList.add('hidden');
+    readerBody.classList.remove('hidden');
+
+    try {
+        let html = '';
+        if (file.name.endsWith('.txt') || file.name.endsWith('.md')) {
+            const text = await file.text();
+            html = text.split('\n').map(line => `<p>${escapeHtml(line) || '&nbsp;'}</p>`).join('');
+        } else if (file.name.endsWith('.html') || file.name.endsWith('.htm')) {
+            html = await file.text();
+        } else if (file.name.endsWith('.docx')) {
+            const arrayBuffer = await file.arrayBuffer();
+            const result = await mammoth.convertToHtml({ arrayBuffer });
+            html = result.value;
+        } else if (file.name.endsWith('.pdf')) {
+            html = await renderPdfToHtml(file);
+        } else {
+            const text = await file.text();
+            html = `<pre>${escapeHtml(text)}</pre>`;
+        }
+
+        readerBody.innerHTML = html;
+        document.getElementById('readerDocTitle').innerHTML = `<i class="fas fa-file"></i> ${file.name}`;
+        readerContent.classList.remove('hidden');
+        hideReaderInputPanels();
+        STATE.readerSessionWords = [];
+        updateReaderSidebar();
+    } catch (err) {
+        showToast('Error opening file: ' + err.message, 'error');
+    }
+}
+
+async function renderPdfToHtml(file) {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let html = '';
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        let pageText = '';
+        let lastY = null;
+
+        content.items.forEach(item => {
+            if (lastY !== null && Math.abs(item.transform[5] - lastY) > 5) {
+                pageText += '</p><p>';
+            }
+            pageText += item.str + ' ';
+            lastY = item.transform[5];
+        });
+
+        html += `<div class="pdf-page"><p>${pageText}</p></div>`;
+        if (i < pdf.numPages) html += '<hr style="margin:2rem 0;opacity:0.3">';
+    }
+
+    return html;
+}
+
+function loadReaderUrl() {
+    const url = document.getElementById('readerUrlInput').value.trim();
+    if (!url) return;
+
+    const readerContent = document.getElementById('readerContent');
+    const readerBody = document.getElementById('readerBody');
+    const iframeContainer = document.getElementById('readerIframe');
+    const frame = document.getElementById('readerFrame');
+
+    readerBody.classList.add('hidden');
+    iframeContainer.classList.remove('hidden');
+    frame.src = url;
+
+    document.getElementById('readerDocTitle').innerHTML = `<i class="fas fa-globe"></i> ${url}`;
+    readerContent.classList.remove('hidden');
+    hideReaderInputPanels();
+    STATE.readerSessionWords = [];
+    updateReaderSidebar();
+
+    // Also try fetching content for text selection (fallback for CORS-blocked iframes)
+    fetchUrlContent(url);
+}
+
+async function fetchUrlContent(url) {
+    try {
+        // Try via a CORS proxy for reading text content
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+        const response = await fetch(proxyUrl);
+        if (response.ok) {
+            const html = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            // Extract main text content
+            const body = doc.querySelector('article') || doc.querySelector('main') || doc.querySelector('body');
+            if (body) {
+                const readerBody = document.getElementById('readerBody');
+                readerBody.innerHTML = body.innerHTML;
+                readerBody.classList.remove('hidden');
+                document.getElementById('readerIframe').classList.add('hidden');
+            }
+        }
+    } catch (e) {
+        // If proxy fails, iframe stays as fallback
+    }
+}
+
+function loadReaderPaste() {
+    const text = document.getElementById('readerPasteText').value.trim();
+    if (!text) return;
+
+    const readerBody = document.getElementById('readerBody');
+    const readerContent = document.getElementById('readerContent');
+    const iframeContainer = document.getElementById('readerIframe');
+
+    iframeContainer.classList.add('hidden');
+    readerBody.classList.remove('hidden');
+
+    readerBody.innerHTML = text.split('\n').map(line => `<p>${escapeHtml(line) || '&nbsp;'}</p>`).join('');
+    document.getElementById('readerDocTitle').innerHTML = `<i class="fas fa-paste"></i> Pasted Text`;
+    readerContent.classList.remove('hidden');
+    hideReaderInputPanels();
+    STATE.readerSessionWords = [];
+    updateReaderSidebar();
+}
+
+function closeReader() {
+    document.getElementById('readerContent').classList.add('hidden');
+    document.getElementById('readerSidebar').classList.add('hidden');
+    document.getElementById('readerFilePanel').classList.remove('hidden');
+    hideReaderPopup();
+}
+
+function hideReaderInputPanels() {
+    document.getElementById('readerFilePanel').classList.add('hidden');
+    document.getElementById('readerUrlPanel').classList.add('hidden');
+    document.getElementById('readerPastePanel').classList.add('hidden');
+}
+
+function readerZoom(delta) {
+    STATE.readerZoom = Math.max(60, Math.min(200, STATE.readerZoom + delta));
+    document.getElementById('readerZoomLevel').textContent = STATE.readerZoom + '%';
+    document.getElementById('readerBody').style.fontSize = (STATE.readerZoom / 100) + 'rem';
+}
+
+// --- Reader Selection & Popup ---
+async function handleReaderSelection(e) {
+    const selection = window.getSelection();
+    const selectedText = selection.toString().trim();
+
+    if (!selectedText || selectedText.includes(' ') || selectedText.length < 2 || selectedText.length > 30) {
+        return;
+    }
+
+    // Clean the word
+    const word = selectedText.replace(/[^a-zA-Z'-]/g, '').toLowerCase();
+    if (word.length < 2) return;
+
+    showReaderPopup(word, e.clientX, e.clientY);
+}
+
+async function showReaderPopup(word, x, y) {
+    const popup = document.getElementById('readerPopup');
+    const loading = document.getElementById('popupLoading');
+    const result = document.getElementById('popupResult');
+
+    // Position popup
+    const viewW = window.innerWidth;
+    const viewH = window.innerHeight;
+    let left = x + 10;
+    let top = y + 10;
+    if (left + 420 > viewW) left = x - 320;
+    if (top + 250 > viewH) top = y - 260;
+    popup.style.left = Math.max(10, left) + 'px';
+    popup.style.top = Math.max(10, top) + 'px';
+
+    document.getElementById('popupWord').textContent = word;
+    loading.classList.remove('hidden');
+    result.classList.add('hidden');
+    popup.classList.remove('hidden');
+
+    STATE.readerPopupWord = null;
+
+    try {
+        const data = await fetchWordData(word);
+        STATE.readerPopupWord = {
+            word: data.word,
+            phonetic: data.phonetic || data.phonetics?.[0]?.text || '',
+            partOfSpeech: data.meanings[0]?.partOfSpeech || '',
+            meaning: data.meanings[0]?.definitions[0]?.definition || '',
+            example: data.meanings[0]?.definitions[0]?.example || '',
+            synonyms: [],
+            antonyms: [],
+            audio: data.phonetics?.find(p => p.audio)?.audio || '',
+        };
+
+        document.getElementById('popupPos').textContent = STATE.readerPopupWord.partOfSpeech;
+        document.getElementById('popupPhonetic').textContent = STATE.readerPopupWord.phonetic;
+        document.getElementById('popupMeaning').textContent = STATE.readerPopupWord.meaning;
+        document.getElementById('popupExample').textContent = STATE.readerPopupWord.example ? `"${STATE.readerPopupWord.example}"` : '';
+
+        loading.classList.add('hidden');
+        result.classList.remove('hidden');
+    } catch (err) {
+        loading.classList.add('hidden');
+        result.classList.remove('hidden');
+        document.getElementById('popupPos').textContent = '';
+        document.getElementById('popupPhonetic').textContent = '';
+        document.getElementById('popupMeaning').textContent = 'Word not found in dictionary.';
+        document.getElementById('popupExample').textContent = '';
+    }
+}
+
+function hideReaderPopup() {
+    document.getElementById('readerPopup').classList.add('hidden');
+}
+
+function popupFullLookup() {
+    const word = document.getElementById('popupWord').textContent;
+    hideReaderPopup();
+    document.getElementById('wordInput').value = word;
+    showSection('lookup');
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+    document.querySelector('[data-section="lookup"]').classList.add('active');
+    searchWord(word);
+}
+
+function popupSaveWord() {
+    if (!STATE.readerPopupWord) {
+        showToast('No word data to save', 'error');
+        return;
+    }
+
+    const existing = STATE.words.find(w => w.word.toLowerCase() === STATE.readerPopupWord.word.toLowerCase());
+    if (existing) {
+        showToast('Word already in history!', 'error');
+        return;
+    }
+
+    const entry = {
+        ...STATE.readerPopupWord,
+        id: Date.now(),
+        dateAdded: new Date().toISOString(),
+        mastery: 'new',
+        reviewCount: 0,
+    };
+
+    STATE.words.push(entry);
+    saveWords();
+
+    // Add to session sidebar
+    STATE.readerSessionWords.push(entry);
+    updateReaderSidebar();
+
+    showToast(`"${entry.word}" saved!`, 'success');
+    hideReaderPopup();
+}
+
+function popupPronounce() {
+    if (STATE.readerPopupWord?.audio) {
+        new Audio(STATE.readerPopupWord.audio).play();
+    } else {
+        const word = document.getElementById('popupWord').textContent;
+        if ('speechSynthesis' in window) {
+            const utter = new SpeechSynthesisUtterance(word);
+            utter.lang = 'en-US';
+            speechSynthesis.speak(utter);
+        }
+    }
+}
+
+function updateReaderSidebar() {
+    const sidebar = document.getElementById('readerSidebar');
+    const list = document.getElementById('readerSessionWords');
+
+    if (STATE.readerSessionWords.length === 0) {
+        sidebar.classList.add('hidden');
+        return;
+    }
+
+    sidebar.classList.remove('hidden');
+    list.innerHTML = STATE.readerSessionWords.map(w => `
+        <div class="session-word-item">
+            <span class="word">${w.word}</span>
+            <span class="meaning">${truncate(w.meaning, 25)}</span>
+        </div>
+    `).join('');
+}
+
+function readerSaveAllSession() {
+    let added = 0;
+    STATE.readerSessionWords.forEach(w => {
+        if (!STATE.words.find(existing => existing.word.toLowerCase() === w.word.toLowerCase())) {
+            STATE.words.push(w);
+            added++;
+        }
+    });
+    saveWords();
+    showToast(`${added} words saved to history!`, 'success');
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }

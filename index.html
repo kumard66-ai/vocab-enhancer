@@ -23,6 +23,9 @@
             <a href="#history" class="nav-link" data-section="history">
                 <i class="fas fa-table"></i> History
             </a>
+            <a href="#reader" class="nav-link" data-section="reader">
+                <i class="fas fa-book-reader"></i> Reader
+            </a>
             <a href="#upload" class="nav-link" data-section="upload">
                 <i class="fas fa-file-upload"></i> Upload
             </a>
@@ -158,6 +161,123 @@
             <div id="emptyHistory" class="empty-state">
                 <i class="fas fa-inbox"></i>
                 <p>No words saved yet. Start looking up words!</p>
+            </div>
+        </section>
+
+        <!-- Reader Section -->
+        <section id="reader" class="section">
+            <div class="section-header">
+                <h1>Reader</h1>
+                <p>Open documents or websites — highlight any word to look it up instantly</p>
+            </div>
+
+            <div class="reader-toolbar">
+                <div class="reader-tabs">
+                    <button class="reader-tab active" data-reader-tab="file">
+                        <i class="fas fa-file-alt"></i> Open File
+                    </button>
+                    <button class="reader-tab" data-reader-tab="url">
+                        <i class="fas fa-globe"></i> Open URL
+                    </button>
+                    <button class="reader-tab" data-reader-tab="paste">
+                        <i class="fas fa-paste"></i> Paste Text
+                    </button>
+                </div>
+                <div class="reader-actions">
+                    <button id="readerZoomOut" class="btn btn-outline btn-sm" title="Zoom out">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <span id="readerZoomLevel">100%</span>
+                    <button id="readerZoomIn" class="btn btn-outline btn-sm" title="Zoom in">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <button id="readerFullscreen" class="btn btn-outline btn-sm" title="Fullscreen">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- File Input -->
+            <div class="reader-input-panel" id="readerFilePanel">
+                <div class="reader-dropzone" id="readerDropZone">
+                    <i class="fas fa-file-pdf"></i>
+                    <h3>Open a document to read</h3>
+                    <p>Supports: PDF, DOCX, TXT, HTML</p>
+                    <label for="readerFileInput" class="btn btn-primary">
+                        <i class="fas fa-folder-open"></i> Choose File
+                    </label>
+                    <input type="file" id="readerFileInput" accept=".pdf,.docx,.txt,.html,.htm,.md" hidden>
+                </div>
+            </div>
+
+            <!-- URL Input -->
+            <div class="reader-input-panel hidden" id="readerUrlPanel">
+                <div class="url-input-box">
+                    <input type="url" id="readerUrlInput" placeholder="Enter website URL (e.g., https://en.wikipedia.org/wiki/...)">
+                    <button id="readerLoadUrl" class="btn btn-primary">
+                        <i class="fas fa-arrow-right"></i> Load
+                    </button>
+                </div>
+                <p class="reader-url-hint"><i class="fas fa-info-circle"></i> Some websites block embedding. Wikipedia, blogs, and article sites work best.</p>
+            </div>
+
+            <!-- Paste Text Input -->
+            <div class="reader-input-panel hidden" id="readerPastePanel">
+                <textarea id="readerPasteText" placeholder="Paste any text here to read and look up words..."></textarea>
+                <button id="readerLoadPaste" class="btn btn-primary">
+                    <i class="fas fa-eye"></i> Open in Reader
+                </button>
+            </div>
+
+            <!-- Reading Area -->
+            <div id="readerContent" class="reader-content hidden">
+                <div class="reader-doc-header">
+                    <span id="readerDocTitle"><i class="fas fa-file"></i> Document</span>
+                    <button id="readerClose" class="btn btn-outline btn-sm">
+                        <i class="fas fa-times"></i> Close
+                    </button>
+                </div>
+                <div id="readerBody" class="reader-body"></div>
+                <div id="readerIframe" class="reader-iframe-container hidden">
+                    <iframe id="readerFrame" sandbox="allow-same-origin allow-scripts"></iframe>
+                </div>
+            </div>
+
+            <!-- Lookup Popup (appears on text selection) -->
+            <div id="readerPopup" class="reader-popup hidden">
+                <div class="popup-word" id="popupWord"></div>
+                <div class="popup-loading hidden" id="popupLoading">
+                    <i class="fas fa-spinner fa-spin"></i> Looking up...
+                </div>
+                <div class="popup-result hidden" id="popupResult">
+                    <span class="popup-pos" id="popupPos"></span>
+                    <span class="popup-phonetic" id="popupPhonetic"></span>
+                    <p class="popup-meaning" id="popupMeaning"></p>
+                    <p class="popup-example" id="popupExample"></p>
+                </div>
+                <div class="popup-actions">
+                    <button id="popupLookupFull" class="btn btn-primary btn-sm">
+                        <i class="fas fa-search"></i> Full Lookup
+                    </button>
+                    <button id="popupSave" class="btn btn-success btn-sm">
+                        <i class="fas fa-plus"></i> Save
+                    </button>
+                    <button id="popupPronounce" class="btn btn-outline btn-sm">
+                        <i class="fas fa-volume-up"></i>
+                    </button>
+                    <button id="popupClose" class="btn btn-outline btn-sm">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Saved words sidebar -->
+            <div id="readerSidebar" class="reader-sidebar hidden">
+                <h4><i class="fas fa-bookmark"></i> Words from this session</h4>
+                <div id="readerSessionWords" class="reader-session-words"></div>
+                <button id="readerSaveAll" class="btn btn-success btn-sm">
+                    <i class="fas fa-save"></i> Save All to History
+                </button>
             </div>
         </section>
 
