@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VocabVault - Vocabulary Enhancement Tool</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <i class="fas fa-book-open"></i>
+            <span>VocabVault</span>
+        </div>
+        <div class="nav-links">
+            <a href="#lookup" class="nav-link active" data-section="lookup">
+                <i class="fas fa-search"></i> Lookup
+            </a>
+            <a href="#history" class="nav-link" data-section="history">
+                <i class="fas fa-table"></i> History
+            </a>
+            <a href="#upload" class="nav-link" data-section="upload">
+                <i class="fas fa-file-upload"></i> Upload
+            </a>
+            <a href="#flashcards" class="nav-link" data-section="flashcards">
+                <i class="fas fa-clone"></i> Flashcards
+            </a>
+            <a href="#quiz" class="nav-link" data-section="quiz">
+                <i class="fas fa-brain"></i> Quiz
+            </a>
+            <a href="#stats" class="nav-link" data-section="stats">
+                <i class="fas fa-chart-bar"></i> Stats
+            </a>
+        </div>
+        <button class="theme-toggle" id="themeToggle" title="Toggle dark mode">
+            <i class="fas fa-moon"></i>
+        </button>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container">
+        <!-- Lookup Section -->
+        <section id="lookup" class="section active">
+            <div class="section-header">
+                <h1>Word Lookup</h1>
+                <p>Search any word for pronunciation, meanings, and usage examples</p>
+            </div>
+
+            <div class="search-container">
+                <div class="search-box">
+                    <input type="text" id="wordInput" placeholder="Type a word..." autocomplete="off">
+                    <button id="searchBtn" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                </div>
+                <div class="source-selector">
+                    <label>Source:</label>
+                    <select id="sourceSelect">
+                        <option value="free">Free Dictionary API</option>
+                        <option value="vocabulary">Vocabulary.com</option>
+                        <option value="cambridge">Cambridge Dictionary</option>
+                        <option value="oxford">Oxford Dictionary</option>
+                        <option value="merriam">Merriam-Webster</option>
+                    </select>
+                    <button id="openSourceBtn" class="btn btn-outline btn-sm" title="Open in source website">
+                        <i class="fas fa-external-link-alt"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Word Result Card -->
+            <div id="wordResult" class="word-card hidden">
+                <div class="word-header">
+                    <div class="word-title">
+                        <h2 id="resultWord"></h2>
+                        <span id="resultPhonetic" class="phonetic"></span>
+                        <button id="pronounceBtn" class="btn-icon" title="Listen to pronunciation">
+                            <i class="fas fa-volume-up"></i>
+                        </button>
+                    </div>
+                    <button id="saveWordBtn" class="btn btn-success btn-sm">
+                        <i class="fas fa-plus"></i> Save to History
+                    </button>
+                </div>
+                <div id="resultMeanings" class="meanings-container"></div>
+                <div id="resultSynonyms" class="synonyms-section hidden">
+                    <h4><i class="fas fa-link"></i> Synonyms</h4>
+                    <div id="synonymsList" class="tags-list"></div>
+                </div>
+                <div id="resultAntonyms" class="antonyms-section hidden">
+                    <h4><i class="fas fa-unlink"></i> Antonyms</h4>
+                    <div id="antonymsList" class="tags-list"></div>
+                </div>
+            </div>
+
+            <!-- Word of the Day -->
+            <div class="wotd-card">
+                <div class="wotd-badge">Word of the Day</div>
+                <h3 id="wotdWord">Loading...</h3>
+                <p id="wotdMeaning"></p>
+                <button id="wotdLookup" class="btn btn-outline btn-sm">Look it up</button>
+            </div>
+        </section>
+
+        <!-- History Section -->
+        <section id="history" class="section">
+            <div class="section-header">
+                <h1>Word History</h1>
+                <p>All your saved words in one place</p>
+            </div>
+
+            <div class="history-toolbar">
+                <div class="search-filter">
+                    <input type="text" id="historySearch" placeholder="Filter words...">
+                    <select id="historyFilter">
+                        <option value="all">All Parts of Speech</option>
+                        <option value="noun">Nouns</option>
+                        <option value="verb">Verbs</option>
+                        <option value="adjective">Adjectives</option>
+                        <option value="adverb">Adverbs</option>
+                    </select>
+                </div>
+                <div class="history-actions">
+                    <button id="exportExcel" class="btn btn-success btn-sm">
+                        <i class="fas fa-file-excel"></i> Export Excel
+                    </button>
+                    <button id="exportCSV" class="btn btn-outline btn-sm">
+                        <i class="fas fa-file-csv"></i> Export CSV
+                    </button>
+                    <button id="clearHistory" class="btn btn-danger btn-sm">
+                        <i class="fas fa-trash"></i> Clear All
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table id="historyTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Word</th>
+                            <th>Part of Speech</th>
+                            <th>Meaning</th>
+                            <th>Example</th>
+                            <th>Date Added</th>
+                            <th>Mastery</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyBody">
+                    </tbody>
+                </table>
+            </div>
+            <div id="emptyHistory" class="empty-state">
+                <i class="fas fa-inbox"></i>
+                <p>No words saved yet. Start looking up words!</p>
+            </div>
+        </section>
+
+        <!-- Upload Section -->
+        <section id="upload" class="section">
+            <div class="section-header">
+                <h1>File Upload</h1>
+                <p>Upload documents to extract highlighted/bold words automatically</p>
+            </div>
+
+            <div class="upload-area" id="dropZone">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <h3>Drag & Drop your file here</h3>
+                <p>Supports: PDF, DOCX, TXT, HTML, EPUB</p>
+                <span class="upload-or">or</span>
+                <label for="fileInput" class="btn btn-primary">
+                    <i class="fas fa-folder-open"></i> Browse Files
+                </label>
+                <input type="file" id="fileInput" accept=".pdf,.docx,.txt,.html,.epub" hidden>
+            </div>
+
+            <div id="uploadProgress" class="upload-progress hidden">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <p id="progressText">Processing...</p>
+            </div>
+
+            <div id="extractedWords" class="extracted-words hidden">
+                <div class="extracted-header">
+                    <h3><i class="fas fa-highlighter"></i> Extracted Words (<span id="extractedCount">0</span>)</h3>
+                    <div class="extracted-actions">
+                        <button id="lookupAllBtn" class="btn btn-primary btn-sm">
+                            <i class="fas fa-search"></i> Lookup All
+                        </button>
+                        <button id="saveAllBtn" class="btn btn-success btn-sm">
+                            <i class="fas fa-save"></i> Save All to History
+                        </button>
+                    </div>
+                </div>
+                <div id="extractedList" class="extracted-list"></div>
+            </div>
+
+            <!-- Manual Word Entry -->
+            <div class="manual-entry">
+                <h3><i class="fas fa-keyboard"></i> Or paste text with highlighted words</h3>
+                <textarea id="manualText" placeholder="Paste your text here. Words wrapped in **asterisks**, <mark>mark tags</mark>, or ALL CAPS will be extracted..."></textarea>
+                <button id="extractManualBtn" class="btn btn-primary">
+                    <i class="fas fa-magic"></i> Extract Words
+                </button>
+            </div>
+        </section>
+
+        <!-- Flashcards Section -->
+        <section id="flashcards" class="section">
+            <div class="section-header">
+                <h1>Flashcards</h1>
+                <p>Review your vocabulary with interactive flashcards</p>
+            </div>
+
+            <div class="flashcard-controls">
+                <div class="range-selector">
+                    <label>Select words from history:</label>
+                    <div class="range-inputs">
+                        <input type="number" id="fcFrom" placeholder="From #" min="1">
+                        <span>to</span>
+                        <input type="number" id="fcTo" placeholder="To #">
+                        <button id="generateCards" class="btn btn-primary btn-sm">
+                            <i class="fas fa-magic"></i> Generate Cards
+                        </button>
+                    </div>
+                </div>
+                <div class="fc-options">
+                    <label><input type="checkbox" id="shuffleCards"> Shuffle</label>
+                    <label><input type="checkbox" id="showExample"> Show Examples</label>
+                </div>
+            </div>
+
+            <div id="flashcardArea" class="flashcard-area hidden">
+                <div class="fc-progress">
+                    <span id="fcCurrent">1</span> / <span id="fcTotal">0</span>
+                    <div class="fc-progress-bar">
+                        <div class="fc-progress-fill" id="fcProgressFill"></div>
+                    </div>
+                </div>
+
+                <div class="flashcard" id="flashcard">
+                    <div class="flashcard-inner">
+                        <div class="flashcard-front">
+                            <h2 id="fcWord"></h2>
+                            <p id="fcPhonetic" class="phonetic"></p>
+                            <span class="flip-hint">Click to flip</span>
+                        </div>
+                        <div class="flashcard-back">
+                            <span id="fcPos" class="pos-badge"></span>
+                            <p id="fcMeaning" class="fc-meaning"></p>
+                            <p id="fcExample" class="fc-example"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="fc-nav">
+                    <button id="fcPrev" class="btn btn-outline">
+                        <i class="fas fa-arrow-left"></i> Previous
+                    </button>
+                    <div class="fc-rating">
+                        <button class="btn btn-danger btn-sm fc-rate" data-rating="1" title="Don't know">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        <button class="btn btn-warning btn-sm fc-rate" data-rating="2" title="Somewhat know">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <button class="btn btn-success btn-sm fc-rate" data-rating="3" title="Know well">
+                            <i class="fas fa-check"></i>
+                        </button>
+                    </div>
+                    <button id="fcNext" class="btn btn-outline">
+                        Next <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="fcEmpty" class="empty-state">
+                <i class="fas fa-clone"></i>
+                <p>Select a range of words from your history to generate flashcards</p>
+            </div>
+        </section>
+
+        <!-- Quiz Section -->
+        <section id="quiz" class="section">
+            <div class="section-header">
+                <h1>Quiz Mode</h1>
+                <p>Test your vocabulary knowledge</p>
+            </div>
+
+            <div class="quiz-setup" id="quizSetup">
+                <div class="quiz-options">
+                    <div class="quiz-option-group">
+                        <label>Quiz Type:</label>
+                        <select id="quizType">
+                            <option value="meaning">Word → Meaning</option>
+                            <option value="word">Meaning → Word</option>
+                            <option value="fill">Fill in the Blank</option>
+                            <option value="synonym">Synonym Match</option>
+                        </select>
+                    </div>
+                    <div class="quiz-option-group">
+                        <label>Number of Questions:</label>
+                        <select id="quizCount">
+                            <option value="5">5</option>
+                            <option value="10" selected>10</option>
+                            <option value="20">20</option>
+                            <option value="all">All</option>
+                        </select>
+                    </div>
+                    <div class="quiz-option-group">
+                        <label>Difficulty:</label>
+                        <select id="quizDifficulty">
+                            <option value="easy">Easy (4 options)</option>
+                            <option value="medium" selected>Medium (4 options, timed)</option>
+                            <option value="hard">Hard (6 options, timed)</option>
+                        </select>
+                    </div>
+                </div>
+                <button id="startQuiz" class="btn btn-primary btn-lg">
+                    <i class="fas fa-play"></i> Start Quiz
+                </button>
+            </div>
+
+            <div id="quizArea" class="quiz-area hidden">
+                <div class="quiz-header">
+                    <span class="quiz-progress">Question <span id="quizCurrentQ">1</span>/<span id="quizTotalQ">10</span></span>
+                    <span class="quiz-score">Score: <span id="quizScore">0</span></span>
+                    <span class="quiz-timer" id="quizTimer"></span>
+                </div>
+                <div class="quiz-question" id="quizQuestion"></div>
+                <div class="quiz-options-grid" id="quizOptions"></div>
+                <button id="nextQuestion" class="btn btn-primary hidden">Next Question <i class="fas fa-arrow-right"></i></button>
+            </div>
+
+            <div id="quizResults" class="quiz-results hidden">
+                <h2>Quiz Complete!</h2>
+                <div class="results-circle">
+                    <span id="resultPercent">0%</span>
+                </div>
+                <p id="resultMessage"></p>
+                <div class="results-breakdown" id="resultsBreakdown"></div>
+                <button id="retakeQuiz" class="btn btn-primary">
+                    <i class="fas fa-redo"></i> Retake Quiz
+                </button>
+            </div>
+        </section>
+
+        <!-- Stats Section -->
+        <section id="stats" class="section">
+            <div class="section-header">
+                <h1>Statistics</h1>
+                <p>Track your vocabulary learning progress</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <i class="fas fa-book"></i>
+                    <h3 id="statTotal">0</h3>
+                    <p>Total Words</p>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-calendar-week"></i>
+                    <h3 id="statWeek">0</h3>
+                    <p>This Week</p>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-trophy"></i>
+                    <h3 id="statMastered">0</h3>
+                    <p>Mastered</p>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-fire"></i>
+                    <h3 id="statStreak">0</h3>
+                    <p>Day Streak</p>
+                </div>
+            </div>
+
+            <div class="stats-charts">
+                <div class="chart-card">
+                    <h3>Words Added Over Time</h3>
+                    <canvas id="wordsChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3>Parts of Speech Distribution</h3>
+                    <canvas id="posChart"></canvas>
+                </div>
+            </div>
+
+            <div class="mastery-levels">
+                <h3>Mastery Levels</h3>
+                <div class="mastery-bars" id="masteryBars"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast hidden"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
