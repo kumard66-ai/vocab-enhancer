@@ -1183,50 +1183,141 @@ async function renderPdfToHtml(file) {
     return html;
 }
 
-function loadReaderUrl() {
+async function loadReaderUrl() {
     const url = document.getElementById('readerUrlInput').value.trim();
     if (!url) return;
+
+    // Validate URL
+    let validUrl = url;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        validUrl = 'https://' + url;
+    }
 
     const readerContent = document.getElementById('readerContent');
     const readerBody = document.getElementById('readerBody');
     const iframeContainer = document.getElementById('readerIframe');
-    const frame = document.getElementById('readerFrame');
 
-    readerBody.classList.add('hidden');
-    iframeContainer.classList.remove('hidden');
-    frame.src = url;
-
-    document.getElementById('readerDocTitle').innerHTML = `<i class="fas fa-globe"></i> ${url}`;
+    iframeContainer.classList.add('hidden');
+    readerBody.classList.remove('hidden');
+    readerBody.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:3rem"><i class="fas fa-spinner fa-spin"></i> Loading page content...</p>';
     readerContent.classList.remove('hidden');
     hideReaderInputPanels();
+    document.getElementById('readerDocTitle').innerHTML = `<i class="fas fa-globe"></i> ${validUrl}`;
     STATE.readerSessionWords = [];
     updateReaderSidebar();
 
-    // Also try fetching content for text selection (fallback for CORS-blocked iframes)
-    fetchUrlContent(url);
+    const html = await fetchUrlContent(validUrl);
+    if (html) {
+        readerBody.innerHTML = html;
+    } else {
+        readerBody.innerHTML = `
+            <div style="text-align:center;padding:3rem;color:var(--text-secondary)">
+                <i class="fas fa-exclamation-triangle" style="font-size:2rem;color:var(--warning);margin-bottom:1rem"></i>
+                <h3>Could not load this page</h3>
+                <p>The website may be blocking external access.</p>
+                <p style="margin-top:1rem"><strong>Try these alternatives:</strong></p>
+                <ul style="list-style:none;margin-top:0.75rem">
+                    <li>Wikipedia articles, blog posts, news articles work best</li>
+                    <li>Or copy the text and use "Paste Text" tab instead</li>
+                </ul>
+                <a href="${validUrl}" target="_blank" class="btn btn-primary" style="margin-top:1.5rem">
+                    <i class="fas fa-external-link-alt"></i> Open in new tab & copy text
+                </a>
+            </div>`;
+    }
 }
 
 async function fetchUrlContent(url) {
-    try {
-        // Try via a CORS proxy for reading text content
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-        const response = await fetch(proxyUrl);
-        if (response.ok) {
-            const html = await response.text();
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            // Extract main text content
-            const body = doc.querySelector('article') || doc.querySelector('main') || doc.querySelector('body');
-            if (body) {
-                const readerBody = document.getElementById('readerBody');
-                readerBody.innerHTML = body.innerHTML;
-                readerBody.classList.remove('hidden');
-                document.getElementById('readerIframe').classList.add('hidden');
+    // Try multiple CORS proxies
+    const proxies = [
+        (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+        (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+        (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+    ];
+
+    for (const proxyFn of proxies) {
+        try {
+            const proxyUrl = proxyFn(url);
+            const response = await fetch(proxyUrl, { signal: AbortSignal.timeout(10000) });
+            if (!response.ok) continue;
+
+            const rawHtml = await response.text();
+            const cleanHtml = extractReadableContent(rawHtml, url);
+            if (cleanHtml) return cleanHtml;
+        } catch (e) {
+            continue;
+        }
+    }
+
+    return null;
+}
+
+function extractReadableContent(rawHtml, sourceUrl) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(rawHtml, 'text/html');
+
+    // Remove scripts, styles, nav, footer, ads, etc
+    const removeSelectors = 'script, style, nav, footer, header, aside, .sidebar, .ad, .ads, .advertisement, .nav, .menu, .footer, .header, iframe, noscript, svg, [role="navigation"], [role="banner"], [role="complementary"]';
+    doc.querySelectorAll(removeSelectors).forEach(el => el.remove());
+
+    // Try to find main content area
+    const contentSelectors = ['article', '[role="main"]', 'main', '.post-content', '.article-content', '.entry-content', '.content', '#content', '#main', '.post', '.article'];
+    let contentEl = null;
+
+    for (const sel of contentSelectors) {
+        contentEl = doc.querySelector(sel);
+        if (contentEl && contentEl.textContent.trim().length > 200) break;
+        contentEl = null;
+    }
+
+    // Fallback to body
+    if (!contentEl) contentEl = doc.body;
+    if (!contentEl) return null;
+
+    // Extract clean text with structure
+    let html = '';
+    const title = doc.querySelector('title')?.textContent || doc.querySelector('h1')?.textContent || '';
+    if (title) html += `<h1>${escapeHtml(title)}</h1>`;
+
+    // Get all meaningful text nodes preserving structure
+    const allowedTags = new Set(['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'BLOCKQUOTE', 'PRE', 'CODE', 'FIGCAPTION', 'TD', 'TH', 'DT', 'DD']);
+
+    function walkNodes(el) {
+        let result = '';
+        for (const child of el.children) {
+            const tag = child.tagName;
+            const text = child.textContent.trim();
+            if (!text || text.length < 3) continue;
+
+            if (tag === 'IMG') {
+                const alt = child.getAttribute('alt');
+                if (alt) result += `<p><em>[Image: ${escapeHtml(alt)}]</em></p>`;
+            } else if (allowedTags.has(tag)) {
+                const innerText = child.textContent.trim();
+                if (innerText.length > 5) {
+                    result += `<${tag.toLowerCase()}>${innerText}</${tag.toLowerCase()}>`;
+                }
+            } else if (tag === 'UL' || tag === 'OL') {
+                result += `<${tag.toLowerCase()}>`;
+                child.querySelectorAll('li').forEach(li => {
+                    const liText = li.textContent.trim();
+                    if (liText.length > 3) result += `<li>${liText}</li>`;
+                });
+                result += `</${tag.toLowerCase()}>`;
+            } else if (tag === 'DIV' || tag === 'SECTION' || tag === 'ARTICLE' || tag === 'SPAN') {
+                result += walkNodes(child);
             }
         }
-    } catch (e) {
-        // If proxy fails, iframe stays as fallback
+        return result;
     }
+
+    html += walkNodes(contentEl);
+
+    // Check if we got meaningful content
+    const textOnly = html.replace(/<[^>]*>/g, '').trim();
+    if (textOnly.length < 100) return null;
+
+    return html;
 }
 
 function loadReaderPaste() {
