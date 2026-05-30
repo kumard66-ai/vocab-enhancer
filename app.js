@@ -122,7 +122,12 @@ async function loadFromCloud() {
         setSyncStatus('synced');
     } catch (err) {
         setSyncStatus('offline');
-        showToast('Cloud sync failed, using local data', 'error');
+        console.error('Cloud sync error:', err.code, err.message);
+        if (err.code === 'permission-denied') {
+            showToast('Firestore rules need updating. Check console for details.', 'error');
+        } else {
+            showToast('Cloud sync failed: ' + (err.code || err.message), 'error');
+        }
     }
 }
 
