@@ -531,6 +531,37 @@ body {
     background: var(--bg-hover);
 }
 
+.phonetic-small {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.btn-pronounce {
+    font-size: 0.85rem;
+    color: var(--primary);
+    padding: 0.15rem;
+}
+
+.btn-pronounce:hover {
+    transform: scale(1.3);
+}
+
+.source-link {
+    font-size: 0.75rem;
+    color: var(--primary);
+    text-decoration: none;
+    padding: 0.15rem 0.4rem;
+    background: var(--primary-light);
+    border-radius: var(--radius-full);
+    white-space: nowrap;
+}
+
+.source-link:hover {
+    background: var(--primary);
+    color: white;
+}
+
 .mastery-badge {
     display: inline-block;
     padding: 0.2rem 0.6rem;

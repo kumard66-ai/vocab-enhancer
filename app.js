@@ -200,6 +200,7 @@ function initSearch() {
     openBtn.addEventListener('click', openInSource);
     document.getElementById('saveWordBtn').addEventListener('click', saveCurrentWord);
     document.getElementById('pronounceBtn').addEventListener('click', pronounceWord);
+    initCustomSources();
 }
 
 async function searchWord(word) {
@@ -318,14 +319,80 @@ function openInSource() {
     const word = document.getElementById('wordInput').value.trim();
     if (!word) return;
     const source = document.getElementById('sourceSelect').value;
-    const urls = {
+    const url = getSourceUrl(source, word);
+    if (url) window.open(url, '_blank');
+}
+
+function getSourceUrl(source, word) {
+    const builtIn = {
         free: `https://api.dictionaryapi.dev/api/v2/entries/en/${word}`,
         vocabulary: `https://www.vocabulary.com/dictionary/${word}`,
         cambridge: `https://dictionary.cambridge.org/dictionary/english/${word}`,
         oxford: `https://www.oxfordlearnersdictionaries.com/definition/english/${word}`,
         merriam: `https://www.merriam-webster.com/dictionary/${word}`,
+        longman: `https://www.ldoceonline.com/dictionary/${word}`,
     };
-    window.open(urls[source], '_blank');
+    if (builtIn[source]) return builtIn[source];
+    // Custom sources stored in localStorage
+    const custom = JSON.parse(localStorage.getItem('vocabCustomSources') || '[]');
+    const found = custom.find(s => s.id === source);
+    if (found) return found.urlTemplate.replace('{word}', word);
+    return null;
+}
+
+function getSourceLabel(source) {
+    const labels = {
+        free: 'Free Dict',
+        vocabulary: 'Vocabulary.com',
+        cambridge: 'Cambridge',
+        oxford: 'Oxford',
+        merriam: 'Merriam-Webster',
+        longman: 'Longman',
+    };
+    if (labels[source]) return labels[source];
+    const custom = JSON.parse(localStorage.getItem('vocabCustomSources') || '[]');
+    const found = custom.find(s => s.id === source);
+    return found ? found.name : source;
+}
+
+function initCustomSources() {
+    const select = document.getElementById('sourceSelect');
+    select.addEventListener('change', () => {
+        if (select.value === 'custom') {
+            addCustomSource();
+            select.value = 'free';
+        }
+    });
+    // Load existing custom sources into dropdown
+    const custom = JSON.parse(localStorage.getItem('vocabCustomSources') || '[]');
+    custom.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.name;
+        select.insertBefore(opt, select.querySelector('[value="custom"]'));
+    });
+}
+
+function addCustomSource() {
+    const name = prompt('Source name (e.g., "Wiktionary"):');
+    if (!name) return;
+    const urlTemplate = prompt('URL template with {word} placeholder:\n(e.g., https://en.wiktionary.org/wiki/{word})');
+    if (!urlTemplate || !urlTemplate.includes('{word}')) {
+        showToast('URL must include {word} placeholder', 'error');
+        return;
+    }
+    const id = 'custom_' + name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const custom = JSON.parse(localStorage.getItem('vocabCustomSources') || '[]');
+    custom.push({ id, name, urlTemplate });
+    localStorage.setItem('vocabCustomSources', JSON.stringify(custom));
+
+    const select = document.getElementById('sourceSelect');
+    const opt = document.createElement('option');
+    opt.value = id;
+    opt.textContent = name;
+    select.insertBefore(opt, select.querySelector('[value="custom"]'));
+    select.value = id;
+    showToast(`"${name}" added as source!`, 'success');
 }
 
 function saveCurrentWord() {
@@ -336,9 +403,11 @@ function saveCurrentWord() {
         return;
     }
 
+    const source = document.getElementById('sourceSelect').value;
     const entry = {
         ...STATE.currentWord,
         id: Date.now(),
+        source: source,
         dateAdded: new Date().toISOString(),
         mastery: 'new',
         reviewCount: 0,
@@ -391,9 +460,16 @@ function renderHistory() {
         <tr>
             <td>${i + 1}</td>
             <td><strong>${w.word}</strong></td>
+            <td>
+                <span class="phonetic-small">${w.phonetic || ''}</span>
+                <button class="btn-icon btn-pronounce" onclick="pronounceHistoryWord('${w.word}', '${w.audio || ''}')" title="Listen">
+                    <i class="fas fa-volume-up"></i>
+                </button>
+            </td>
             <td><span class="mastery-badge ${w.partOfSpeech}">${w.partOfSpeech}</span></td>
-            <td>${truncate(w.meaning, 60)}</td>
-            <td><em>${truncate(w.example || '-', 50)}</em></td>
+            <td>${w.meaning}</td>
+            <td><em>${w.example || '-'}</em></td>
+            <td>${w.source ? `<a href="${getSourceUrl(w.source, w.word) || '#'}" target="_blank" class="source-link">${getSourceLabel(w.source)}</a>` : '-'}</td>
             <td>${formatDate(w.dateAdded)}</td>
             <td><span class="mastery-badge ${w.mastery}">${w.mastery}</span></td>
             <td>
@@ -406,6 +482,16 @@ function renderHistory() {
             </td>
         </tr>
     `).join('');
+}
+
+function pronounceHistoryWord(word, audioUrl) {
+    if (audioUrl) {
+        new Audio(audioUrl).play();
+    } else if ('speechSynthesis' in window) {
+        const utter = new SpeechSynthesisUtterance(word);
+        utter.lang = 'en-US';
+        speechSynthesis.speak(utter);
+    }
 }
 
 function lookupHistoryWord(word) {
