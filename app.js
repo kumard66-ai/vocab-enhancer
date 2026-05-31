@@ -232,20 +232,20 @@ function initAutocomplete(input) {
 
         renderAcItems(acBox, savedMatches, input);
 
-        // Debounced fetch from dictionary API for suggestions
+        // Debounced fetch from Wiktionary for word suggestions
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(async () => {
             try {
-                const res = await fetch(`https://api.datamuse.com/sug?s=${encodeURIComponent(val)}&max=8`, { signal: AbortSignal.timeout(3000) });
+                const res = await fetch(`https://en.wiktionary.org/w/api.php?action=opensearch&format=json&search=${encodeURIComponent(val)}&limit=10&namespace=0&origin=*`, { signal: AbortSignal.timeout(3000) });
                 if (!res.ok) return;
                 const data = await res.json();
-                const apiWords = data
-                    .map(d => d.word)
+                const suggestions = (data[1] || [])
+                    .filter(w => /^[a-zA-Z'-]+$/.test(w))
                     .filter(w => !savedMatches.find(s => s.word.toLowerCase() === w.toLowerCase()))
                     .slice(0, 6)
                     .map(w => ({ word: w, saved: false }));
 
-                const combined = [...savedMatches, ...apiWords];
+                const combined = [...savedMatches, ...suggestions];
                 if (input.value.trim().toLowerCase() === val) {
                     renderAcItems(acBox, combined, input);
                 }
