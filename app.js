@@ -647,9 +647,10 @@ function parseVocabulary(doc, word) {
         meanings.push({ partOfSpeech: 'Overview', definitions: overviewDefs });
     }
 
-    // "Definitions of [word]" — individual senses with POS, definition, examples, types, synonyms
+    // “Definitions of [word]” — individual senses with POS, definition, examples, types, synonyms
     const senses = doc.querySelectorAll('.sense');
     const synonyms = [];
+    const senseDefs = [];
     senses.forEach(sense => {
         const posEl = sense.querySelector('.pos-icon');
         const pos = posEl?.textContent?.trim() || '';
@@ -662,11 +663,11 @@ function parseVocabulary(doc, word) {
 
         const examples = [];
         sense.querySelectorAll('.defContent .example').forEach(ex => {
-            const t = ex.textContent?.trim().replace(/[“”""]/g, '');
+            const t = ex.textContent?.trim().replace(/[“”””]/g, '');
             if (t) examples.push(t);
         });
 
-        // Types (sub-definitions like "celestial hierarchy", "data hierarchy")
+        // Types (sub-definitions like “celestial hierarchy”, “data hierarchy”)
         const types = [];
         sense.querySelectorAll('.instances .div-replace-dd').forEach(dd => {
             const typeWord = dd.querySelector('.word')?.textContent?.trim() || '';
@@ -688,9 +689,13 @@ function parseVocabulary(doc, word) {
             if (types.length) {
                 exampleText += (exampleText ? ' | ' : '') + 'Types: ' + types.join('; ');
             }
-            meanings.push({ partOfSpeech: pos, definitions: [{ definition, example: exampleText }] });
+            senseDefs.push({ definition: (pos ? `(${pos}) ` : '') + definition, example: exampleText });
         }
     });
+
+    if (senseDefs.length > 0) {
+        meanings.push({ partOfSpeech: `Definitions of “${word}”`, definitions: senseDefs });
+    }
 
     // Synonyms from instances sections
     doc.querySelectorAll('.instances .word').forEach(el => {
