@@ -205,15 +205,28 @@ function initSearch() {
     });
 
     // Re-search automatically when source changes
+    const removePdfBtn = document.getElementById('removePdfBtn');
     sourceSelect.addEventListener('change', () => {
-        if (sourceSelect.value === 'custom') return;
+        if (sourceSelect.value === 'custom') { removePdfBtn.classList.add('hidden'); return; }
         if (sourceSelect.value === 'uploadpdf') {
             document.getElementById('pdfDictInput').click();
             sourceSelect.value = 'free';
+            removePdfBtn.classList.add('hidden');
             return;
         }
+        // Show/hide remove button for PDF sources
+        removePdfBtn.classList.toggle('hidden', !sourceSelect.value.startsWith('pdf_'));
         const word = input.value.trim();
         if (word) searchWord(word);
+    });
+
+    removePdfBtn.addEventListener('click', () => {
+        const id = sourceSelect.value;
+        if (!id.startsWith('pdf_')) return;
+        const dicts = JSON.parse(localStorage.getItem('vocabPdfDicts') || '[]');
+        const dict = dicts.find(d => d.id === id);
+        if (!confirm(`Remove "${dict?.name || 'this PDF'}" dictionary?`)) return;
+        removePdfDictionary(id);
     });
 
     openBtn.addEventListener('click', openInSource);
@@ -2148,6 +2161,29 @@ async function getPdfDictFromIDB(id) {
         req.onsuccess = () => resolve(req.result);
         req.onerror = () => reject(req.error);
     });
+}
+
+async function removePdfDictionary(id) {
+    // Remove from IndexedDB
+    try {
+        const db = await openPdfDictDB();
+        const tx = db.transaction('dicts', 'readwrite');
+        tx.objectStore('dicts').delete(id);
+    } catch (e) {}
+
+    // Remove from localStorage
+    const dicts = JSON.parse(localStorage.getItem('vocabPdfDicts') || '[]');
+    const updated = dicts.filter(d => d.id !== id);
+    localStorage.setItem('vocabPdfDicts', JSON.stringify(updated));
+
+    // Remove from dropdown and reset
+    const select = document.getElementById('sourceSelect');
+    const opt = select.querySelector(`[value="${id}"]`);
+    if (opt) opt.remove();
+    select.value = 'free';
+    document.getElementById('removePdfBtn').classList.add('hidden');
+
+    showToast('PDF dictionary removed', 'success');
 }
 
 async function searchPdfDict(source, word) {
