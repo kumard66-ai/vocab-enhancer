@@ -216,33 +216,41 @@ function initAutocomplete(input) {
     input.parentElement.appendChild(acBox);
 
     let activeIdx = -1;
+    let debounceTimer = null;
 
     input.addEventListener('input', () => {
         const val = input.value.trim().toLowerCase();
         acBox.innerHTML = '';
         activeIdx = -1;
-        if (!val || val.length < 1) { acBox.classList.remove('visible'); return; }
+        if (!val || val.length < 2) { acBox.classList.remove('visible'); return; }
 
-        const matches = STATE.words
+        // Show saved words immediately
+        const savedMatches = STATE.words
             .filter(w => w.word.toLowerCase().startsWith(val))
-            .slice(0, 8)
-            .map(w => w.word);
+            .slice(0, 4)
+            .map(w => ({ word: w.word, saved: true }));
 
-        if (matches.length === 0) { acBox.classList.remove('visible'); return; }
+        renderAcItems(acBox, savedMatches, input);
 
-        acBox.classList.add('visible');
-        matches.forEach((word, i) => {
-            const item = document.createElement('div');
-            item.className = 'autocomplete-item';
-            item.textContent = word;
-            item.addEventListener('mousedown', (e) => {
-                e.preventDefault();
-                input.value = word;
-                acBox.classList.remove('visible');
-                searchWord(word);
-            });
-            acBox.appendChild(item);
-        });
+        // Debounced fetch from dictionary API for suggestions
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(async () => {
+            try {
+                const res = await fetch(`https://api.datamuse.com/sug?s=${encodeURIComponent(val)}&max=8`, { signal: AbortSignal.timeout(3000) });
+                if (!res.ok) return;
+                const data = await res.json();
+                const apiWords = data
+                    .map(d => d.word)
+                    .filter(w => !savedMatches.find(s => s.word.toLowerCase() === w.toLowerCase()))
+                    .slice(0, 6)
+                    .map(w => ({ word: w, saved: false }));
+
+                const combined = [...savedMatches, ...apiWords];
+                if (input.value.trim().toLowerCase() === val) {
+                    renderAcItems(acBox, combined, input);
+                }
+            } catch (e) {}
+        }, 250);
     });
 
     input.addEventListener('keydown', (e) => {
@@ -258,7 +266,7 @@ function initAutocomplete(input) {
             items.forEach((it, i) => it.classList.toggle('active', i === activeIdx));
         } else if (e.key === 'Enter' && activeIdx >= 0) {
             e.preventDefault();
-            input.value = items[activeIdx].textContent;
+            input.value = items[activeIdx].dataset.word;
             acBox.classList.remove('visible');
             searchWord(input.value.trim());
         } else if (e.key === 'Escape') {
@@ -268,6 +276,27 @@ function initAutocomplete(input) {
 
     input.addEventListener('blur', () => {
         setTimeout(() => acBox.classList.remove('visible'), 150);
+    });
+}
+
+function renderAcItems(acBox, items, input) {
+    acBox.innerHTML = '';
+    if (items.length === 0) { acBox.classList.remove('visible'); return; }
+    acBox.classList.add('visible');
+    items.forEach(({ word, saved }) => {
+        const item = document.createElement('div');
+        item.className = 'autocomplete-item';
+        item.dataset.word = word;
+        item.innerHTML = saved
+            ? `<i class="fas fa-bookmark" style="color:var(--success);margin-right:0.4rem;font-size:0.7rem"></i>${word}`
+            : word;
+        item.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            input.value = word;
+            acBox.classList.remove('visible');
+            searchWord(word);
+        });
+        acBox.appendChild(item);
     });
 }
 
