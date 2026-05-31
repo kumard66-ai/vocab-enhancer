@@ -1045,6 +1045,7 @@ function displayWordResult(data) {
     STATE._allSynonyms = allSynonyms;
     STATE._allAntonyms = allAntonyms;
     STATE._allPhrases = allPhrases;
+    STATE._relatedTopics = data._relatedTopics || [];
 }
 
 function toggleTagSelect(el) {
@@ -1204,6 +1205,7 @@ function saveCurrentWord() {
         existing.synonyms = mergeUnique(existing.synonyms, selected.synonyms);
         existing.antonyms = mergeUnique(existing.antonyms, selected.antonyms);
         existing.phrases = mergeUnique(existing.phrases, selected.phrases);
+        existing.relatedTopics = mergeUnique(existing.relatedTopics, STATE._relatedTopics || []);
         if (STATE.currentWord.phonetic && !existing.phonetic) existing.phonetic = STATE.currentWord.phonetic;
         if (STATE.currentWord.audio && !existing.audio) existing.audio = STATE.currentWord.audio;
         // Track multiple sources
@@ -1228,6 +1230,7 @@ function saveCurrentWord() {
         synonyms: selected.synonyms,
         antonyms: selected.antonyms,
         phrases: selected.phrases,
+        relatedTopics: STATE._relatedTopics || [],
         audio: STATE.currentWord.audio || '',
         id: Date.now(),
         source: source,
@@ -1337,6 +1340,7 @@ function renderHistory() {
                 </button>
             </td>
             <td><span class="mastery-badge ${w.partOfSpeech}">${w.partOfSpeech}</span></td>
+            <td class="td-tags">${(w.relatedTopics || []).map(t => `<span class="mini-tag topic-tag">${t}</span>`).join('') || '-'}</td>
             <td>${w.meaning}</td>
             <td><em>${w.example || '-'}</em></td>
             <td class="td-tags">${(w.phrases || []).map(p => `<span class="mini-tag phrase-tag">${p}</span>`).join('') || '-'}</td>
@@ -1391,6 +1395,7 @@ function openEditModal(id) {
     STATE.editingWordId = id;
     document.getElementById('editWordTitle').textContent = word.word;
     document.getElementById('editPartOfSpeech').value = word.partOfSpeech || '';
+    document.getElementById('editRelatedTopics').value = (word.relatedTopics || []).join(', ');
     document.getElementById('editMeaning').value = word.meaning || '';
     document.getElementById('editExample').value = word.example || '';
     document.getElementById('editPhrases').value = (word.phrases || []).join(', ');
@@ -1408,6 +1413,7 @@ function saveEditWord() {
     const word = STATE.words.find(w => w.id === STATE.editingWordId);
     if (!word) return;
     word.partOfSpeech = document.getElementById('editPartOfSpeech').value.trim();
+    word.relatedTopics = document.getElementById('editRelatedTopics').value.split(',').map(s => s.trim()).filter(Boolean);
     word.meaning = document.getElementById('editMeaning').value.trim();
     word.example = document.getElementById('editExample').value.trim();
     word.phrases = document.getElementById('editPhrases').value.split(',').map(s => s.trim()).filter(Boolean);

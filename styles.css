@@ -602,6 +602,7 @@ body {
     border-collapse: collapse;
     font-size: 0.8rem;
     table-layout: fixed;
+    border: 1px solid var(--border);
 }
 
 #historyTable th,
@@ -609,7 +610,7 @@ body {
     text-align: left;
     vertical-align: top;
     padding: 0.6rem 0.5rem;
-    border-bottom: 1px solid var(--border);
+    border: 1px solid var(--border);
     overflow: hidden;
     text-overflow: ellipsis;
 }
@@ -627,6 +628,14 @@ body {
     z-index: 1;
 }
 
+#historyTable tbody tr:nth-child(odd) td {
+    background: var(--bg-card);
+}
+
+#historyTable tbody tr:nth-child(even) td {
+    background: color-mix(in srgb, var(--primary) 4%, var(--bg-card));
+}
+
 #historyTable tr:hover td {
     background: var(--bg-hover);
 }
@@ -635,32 +644,34 @@ body {
 #historyTable th:nth-child(1),
 #historyTable td:nth-child(1) { width: 35px; }  /* # */
 #historyTable th:nth-child(2),
-#historyTable td:nth-child(2) { width: 100px; } /* Word */
+#historyTable td:nth-child(2) { width: 95px; }  /* Word */
 #historyTable th:nth-child(3),
-#historyTable td:nth-child(3) { width: 110px; } /* Pronunciation */
+#historyTable td:nth-child(3) { width: 100px; } /* Pronunciation */
 #historyTable th:nth-child(4),
-#historyTable td:nth-child(4) { width: 80px; }  /* POS */
+#historyTable td:nth-child(4) { width: 75px; }  /* POS */
 #historyTable th:nth-child(5),
-#historyTable td:nth-child(5) { width: 20%; }   /* Meaning */
+#historyTable td:nth-child(5) { width: 9%; }    /* Related Topics */
 #historyTable th:nth-child(6),
-#historyTable td:nth-child(6) { width: 15%; }   /* Example */
+#historyTable td:nth-child(6) { width: 18%; }   /* Meaning */
 #historyTable th:nth-child(7),
-#historyTable td:nth-child(7) { width: 12%; }   /* Phrases */
+#historyTable td:nth-child(7) { width: 13%; }   /* Example */
 #historyTable th:nth-child(8),
-#historyTable td:nth-child(8) { width: 10%; }   /* Synonyms */
+#historyTable td:nth-child(8) { width: 10%; }   /* Phrases */
 #historyTable th:nth-child(9),
-#historyTable td:nth-child(9) { width: 10%; }   /* Antonyms */
+#historyTable td:nth-child(9) { width: 9%; }    /* Synonyms */
 #historyTable th:nth-child(10),
-#historyTable td:nth-child(10) { width: 75px; } /* Source */
+#historyTable td:nth-child(10) { width: 9%; }   /* Antonyms */
 #historyTable th:nth-child(11),
-#historyTable td:nth-child(11) { width: 80px; } /* Date */
+#historyTable td:nth-child(11) { width: 70px; } /* Source */
 #historyTable th:nth-child(12),
-#historyTable td:nth-child(12) { width: 65px; } /* Mastery */
+#historyTable td:nth-child(12) { width: 75px; } /* Date */
 #historyTable th:nth-child(13),
-#historyTable td:nth-child(13) { width: 70px; } /* Actions */
+#historyTable td:nth-child(13) { width: 60px; } /* Mastery */
+#historyTable th:nth-child(14),
+#historyTable td:nth-child(14) { width: 70px; } /* Actions */
 
-#historyTable td:nth-child(5),
-#historyTable td:nth-child(6) {
+#historyTable td:nth-child(6),
+#historyTable td:nth-child(7) {
     word-wrap: break-word;
     overflow-wrap: break-word;
     white-space: normal;
@@ -753,6 +764,11 @@ body {
     color: #92400e;
 }
 
+.mini-tag.topic-tag {
+    background: #e0e7ff;
+    color: #3730a3;
+}
+
 [data-theme="dark"] .mini-tag.syn-tag {
     background: #1e3a5f;
     color: #93c5fd;
@@ -766,6 +782,11 @@ body {
 [data-theme="dark"] .mini-tag.phrase-tag {
     background: #78350f;
     color: #fde68a;
+}
+
+[data-theme="dark"] .mini-tag.topic-tag {
+    background: #312e81;
+    color: #c7d2fe;
 }
 
 .source-reference {
