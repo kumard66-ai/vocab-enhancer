@@ -368,6 +368,40 @@ body {
     font-size: 1.1rem;
 }
 
+.pron-variant {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-right: 1rem;
+    font-style: italic;
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+.pron-label {
+    font-style: normal;
+    font-weight: 600;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    background: var(--primary-light);
+    color: var(--primary);
+    padding: 0.1rem 0.4rem;
+    border-radius: var(--radius-full);
+}
+
+.btn-pron {
+    font-size: 0.85rem;
+    padding: 0.15rem 0.3rem;
+    cursor: pointer;
+    color: var(--primary);
+    background: none;
+    border: none;
+}
+
+.btn-pron:hover {
+    color: var(--primary-hover);
+}
+
 .meanings-container {
     display: flex;
     flex-direction: column;

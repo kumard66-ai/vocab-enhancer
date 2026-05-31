@@ -324,9 +324,17 @@ function parseCambridge(doc, word) {
     const entry = doc.querySelector('.entry-body__el') || doc.querySelector('.pr.dictionary') || doc.querySelector('.di-body');
     if (!entry) throw new Error('No entry found');
 
-    const phonetic = doc.querySelector('.ipa')?.textContent || '';
-    const audioSrc = doc.querySelector('source[type="audio/mpeg"]')?.getAttribute('src') || '';
-    const audio = audioSrc ? (audioSrc.startsWith('http') ? audioSrc : 'https://dictionary.cambridge.org' + audioSrc) : '';
+    // Extract UK and US pronunciation separately
+    const ukPron = doc.querySelector('.uk.dpron-i .ipa')?.textContent || '';
+    const usPron = doc.querySelector('.us.dpron-i .ipa')?.textContent || '';
+    const phonetic = ukPron || doc.querySelector('.ipa')?.textContent || '';
+
+    const ukAudioSrc = doc.querySelector('.uk.dpron-i source[type="audio/mpeg"]')?.getAttribute('src') || '';
+    const usAudioSrc = doc.querySelector('.us.dpron-i source[type="audio/mpeg"]')?.getAttribute('src') || '';
+    const baseUrl = 'https://dictionary.cambridge.org';
+    const ukAudio = ukAudioSrc ? (ukAudioSrc.startsWith('http') ? ukAudioSrc : baseUrl + ukAudioSrc) : '';
+    const usAudio = usAudioSrc ? (usAudioSrc.startsWith('http') ? usAudioSrc : baseUrl + usAudioSrc) : '';
+    const audio = ukAudio || usAudio;
 
     const meanings = [];
     // Try .def-block first, fall back to .ddef_d (newer Cambridge layout)
@@ -365,7 +373,14 @@ function parseCambridge(doc, word) {
     });
 
     if (meanings.length === 0) throw new Error('No meanings');
-    return buildStandardResult(word, phonetic, audio, meanings, synonyms, antonyms, phrases);
+    const result = buildStandardResult(word, phonetic, audio, meanings, synonyms, antonyms, phrases);
+    if (ukPron || usPron) {
+        result._pronunciation = {
+            uk: { ipa: ukPron, audio: ukAudio },
+            us: { ipa: usPron, audio: usAudio },
+        };
+    }
+    return result;
 }
 
 function parseOxford(doc, word) {
@@ -410,7 +425,14 @@ function parseOxford(doc, word) {
 
 function parseLongman(doc, word) {
     const phonetic = doc.querySelector('.PRON')?.textContent?.trim() || '';
-    const audioSrc = doc.querySelector('[data-src-mp3]')?.getAttribute('data-src-mp3') || '';
+    const amePron = doc.querySelector('.AMEVARPRON')?.textContent?.trim().replace(/^\$\s*/, '') || '';
+
+    // British and American audio
+    const breAudioEl = doc.querySelector('.brefile[data-src-mp3]');
+    const ameAudioEl = doc.querySelector('.amefile[data-src-mp3]');
+    const breAudio = breAudioEl?.getAttribute('data-src-mp3') || '';
+    const ameAudio = ameAudioEl?.getAttribute('data-src-mp3') || '';
+    const audioSrc = breAudio || ameAudio || doc.querySelector('[data-src-mp3]')?.getAttribute('data-src-mp3') || '';
 
     const meanings = [];
 
@@ -524,6 +546,12 @@ function parseLongman(doc, word) {
     const result = buildStandardResult(word, phonetic, audioSrc, meanings, synonyms, antonyms, phrases);
     if (relatedTopics.length > 0) {
         result._relatedTopics = relatedTopics;
+    }
+    if (phonetic || amePron) {
+        result._pronunciation = {
+            uk: { ipa: phonetic, audio: breAudio },
+            us: { ipa: amePron || phonetic, audio: ameAudio },
+        };
     }
     return result;
 }
@@ -654,11 +682,59 @@ function buildStandardResult(word, phonetic, audio, meanings, synonyms = [], ant
 
 function displayWordResult(data) {
     document.getElementById('resultWord').textContent = data.word;
-    document.getElementById('resultPhonetic').textContent = data.phonetic || (data.phonetics?.[0]?.text) || '';
 
-    // Store audio URL
-    const audioEntry = data.phonetics?.find(p => p.audio);
-    document.getElementById('pronounceBtn').dataset.audio = audioEntry?.audio || '';
+    // Dual pronunciation (UK/US) if available
+    const pronContainer = document.getElementById('resultPhonetic');
+    const pronounceBtn = document.getElementById('pronounceBtn');
+
+    if (data._pronunciation && (data._pronunciation.uk.ipa || data._pronunciation.us.ipa)) {
+        const pron = data._pronunciation;
+        let pronHtml = '';
+        if (pron.uk.ipa) {
+            pronHtml += `<span class="pron-variant"><span class="pron-label">UK</span> /${pron.uk.ipa}/`;
+            if (pron.uk.audio) {
+                pronHtml += ` <button class="btn-icon btn-pron" onclick="new Audio('${pron.uk.audio}').play()" title="British pronunciation"><i class="fas fa-volume-up"></i></button>`;
+            }
+            pronHtml += `</span>`;
+        }
+        if (pron.us.ipa) {
+            pronHtml += `<span class="pron-variant"><span class="pron-label">US</span> /${pron.us.ipa}/`;
+            if (pron.us.audio) {
+                pronHtml += ` <button class="btn-icon btn-pron" onclick="new Audio('${pron.us.audio}').play()" title="American pronunciation"><i class="fas fa-volume-up"></i></button>`;
+            }
+            pronHtml += `</span>`;
+        }
+        pronContainer.innerHTML = pronHtml;
+        pronounceBtn.classList.add('hidden');
+        pronounceBtn.dataset.audio = pron.uk.audio || pron.us.audio || '';
+    } else if (data.phonetics && data.phonetics.length > 1) {
+        // Free Dictionary API: detect UK/US from audio URLs
+        const ukEntry = data.phonetics.find(p => p.audio && p.audio.includes('-uk'));
+        const usEntry = data.phonetics.find(p => p.audio && p.audio.includes('-us'));
+        if (ukEntry || usEntry) {
+            let pronHtml = '';
+            if (ukEntry) {
+                pronHtml += `<span class="pron-variant"><span class="pron-label">UK</span> ${ukEntry.text || data.phonetic || ''}`;
+                pronHtml += ` <button class="btn-icon btn-pron" onclick="new Audio('${ukEntry.audio}').play()" title="British pronunciation"><i class="fas fa-volume-up"></i></button></span>`;
+            }
+            if (usEntry) {
+                pronHtml += `<span class="pron-variant"><span class="pron-label">US</span> ${usEntry.text || data.phonetic || ''}`;
+                pronHtml += ` <button class="btn-icon btn-pron" onclick="new Audio('${usEntry.audio}').play()" title="American pronunciation"><i class="fas fa-volume-up"></i></button></span>`;
+            }
+            pronContainer.innerHTML = pronHtml;
+            pronounceBtn.classList.add('hidden');
+            pronounceBtn.dataset.audio = (ukEntry || usEntry)?.audio || '';
+        } else {
+            pronContainer.textContent = data.phonetic || (data.phonetics?.[0]?.text) || '';
+            pronounceBtn.classList.remove('hidden');
+            pronounceBtn.dataset.audio = data.phonetics?.find(p => p.audio)?.audio || '';
+        }
+    } else {
+        pronContainer.textContent = data.phonetic || (data.phonetics?.[0]?.text) || '';
+        pronounceBtn.classList.remove('hidden');
+        const audioEntry = data.phonetics?.find(p => p.audio);
+        pronounceBtn.dataset.audio = audioEntry?.audio || '';
+    }
 
     // Meanings
     const meaningsDiv = document.getElementById('resultMeanings');
