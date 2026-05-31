@@ -277,8 +277,14 @@
                 </div>
                 <div id="readerBody" class="reader-body"></div>
                 <div id="readerIframe" class="reader-iframe-container hidden">
-                    <iframe id="readerFrame" sandbox="allow-same-origin allow-scripts"></iframe>
+                    <iframe id="readerFrame"></iframe>
                 </div>
+            </div>
+
+            <!-- Floating Lookup Box for PDF mode -->
+            <div id="readerLookupBox" class="reader-lookup-box hidden">
+                <input type="text" id="readerLookupInput" placeholder="Type a word to look up...">
+                <button id="readerLookupBtn" class="btn btn-primary btn-sm"><i class="fas fa-search"></i></button>
             </div>
 
             <!-- Lookup Popup (appears on text selection) -->

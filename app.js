@@ -2584,6 +2584,12 @@ function initReader() {
         if (STATE._popupCurrentWord) performPopupLookup(STATE._popupCurrentWord);
     });
 
+    // Floating lookup box for PDF mode
+    document.getElementById('readerLookupBtn').addEventListener('click', readerLookupFromBox);
+    document.getElementById('readerLookupInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') readerLookupFromBox();
+    });
+
     // Save all from sidebar
     document.getElementById('readerSaveAll').addEventListener('click', readerSaveAllSession);
 
@@ -2609,12 +2615,14 @@ async function openReaderFile(file) {
 
     try {
         if (file.name.endsWith('.pdf')) {
-            try {
-                await renderPdfCanvas(file, readerBody);
-            } catch (pdfErr) {
-                console.error('PDF canvas render failed:', pdfErr);
-                readerBody.innerHTML = '<p style="color:var(--danger);padding:2rem">Failed to render PDF: ' + pdfErr.message + '</p>';
-            }
+            // Use native browser PDF viewer via iframe
+            const blobUrl = URL.createObjectURL(file);
+            readerBody.classList.add('hidden');
+            iframeContainer.classList.remove('hidden');
+            const iframe = document.getElementById('readerFrame');
+            iframe.src = blobUrl;
+            // Show floating lookup box for PDF mode
+            document.getElementById('readerLookupBox').classList.remove('hidden');
         } else {
             let html = '';
             if (file.name.endsWith('.txt') || file.name.endsWith('.md')) {
@@ -2631,6 +2639,7 @@ async function openReaderFile(file) {
                 html = `<pre>${escapeHtml(text)}</pre>`;
             }
             readerBody.innerHTML = html;
+            document.getElementById('readerLookupBox').classList.add('hidden');
         }
 
         document.getElementById('readerDocTitle').innerHTML = `<i class="fas fa-file"></i> ${file.name}`;
@@ -2643,101 +2652,6 @@ async function openReaderFile(file) {
     }
 }
 
-async function renderPdfCanvas(file, container) {
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    container.innerHTML = '';
-    container.classList.add('pdf-canvas-viewer');
-    STATE.readerPdf = pdf;
-
-    const containerWidth = container.clientWidth - 40;
-
-    // Create placeholder divs for all pages
-    const pageDivs = [];
-    for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const unscaledViewport = page.getViewport({ scale: 1 });
-        const scale = containerWidth / unscaledViewport.width;
-        const viewport = page.getViewport({ scale });
-
-        const pageDiv = document.createElement('div');
-        pageDiv.className = 'pdf-page-wrapper';
-        pageDiv.dataset.pageNum = i;
-        pageDiv.dataset.rendered = 'false';
-        pageDiv.style.width = viewport.width + 'px';
-        pageDiv.style.height = viewport.height + 'px';
-
-        const placeholder = document.createElement('div');
-        placeholder.className = 'pdf-page-placeholder';
-        placeholder.textContent = `Page ${i}`;
-        pageDiv.appendChild(placeholder);
-
-        container.appendChild(pageDiv);
-        pageDivs.push({ pageDiv, pageNum: i, scale, width: viewport.width, height: viewport.height });
-    }
-
-    // Render visible pages and nearby ones
-    async function renderPage(info) {
-        if (info.pageDiv.dataset.rendered === 'true') return;
-        info.pageDiv.dataset.rendered = 'true';
-
-        const page = await pdf.getPage(info.pageNum);
-        const viewport = page.getViewport({ scale: info.scale });
-
-        const canvas = document.createElement('canvas');
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        const ctx = canvas.getContext('2d');
-        await page.render({ canvasContext: ctx, viewport }).promise;
-
-        const textLayerDiv = document.createElement('div');
-        textLayerDiv.className = 'pdf-text-layer';
-        textLayerDiv.style.width = viewport.width + 'px';
-        textLayerDiv.style.height = viewport.height + 'px';
-
-        const textContent = await page.getTextContent();
-        textContent.items.forEach(item => {
-            const span = document.createElement('span');
-            span.textContent = item.str;
-            const fontHeight = Math.abs(item.transform[3]) * info.scale;
-            const left = item.transform[4] * info.scale;
-            const top = viewport.height - (item.transform[5] * info.scale) - fontHeight;
-            span.style.left = left + 'px';
-            span.style.top = top + 'px';
-            span.style.fontSize = fontHeight + 'px';
-            span.style.fontFamily = 'sans-serif';
-            textLayerDiv.appendChild(span);
-        });
-
-        info.pageDiv.innerHTML = '';
-        info.pageDiv.appendChild(canvas);
-        info.pageDiv.appendChild(textLayerDiv);
-    }
-
-    function renderVisiblePages() {
-        const scrollTop = container.scrollTop;
-        const viewHeight = container.clientHeight;
-        const buffer = viewHeight;
-
-        pageDivs.forEach(info => {
-            const top = info.pageDiv.offsetTop;
-            const bottom = top + info.height;
-            if (bottom >= scrollTop - buffer && top <= scrollTop + viewHeight + buffer) {
-                renderPage(info);
-            }
-        });
-    }
-
-    // Render first few pages immediately
-    for (let i = 0; i < Math.min(3, pageDivs.length); i++) {
-        await renderPage(pageDivs[i]);
-    }
-
-    // Lazy render on scroll
-    container.addEventListener('scroll', () => {
-        requestAnimationFrame(renderVisiblePages);
-    });
-}
 
 async function loadReaderUrl() {
     const url = document.getElementById('readerUrlInput').value.trim();
@@ -2919,6 +2833,14 @@ function closeReader() {
     document.getElementById('readerContent').classList.add('hidden');
     document.getElementById('readerSidebar').classList.add('hidden');
     document.getElementById('readerFilePanel').classList.remove('hidden');
+    document.getElementById('readerLookupBox').classList.add('hidden');
+    const iframe = document.getElementById('readerFrame');
+    if (iframe.src && iframe.src.startsWith('blob:')) {
+        URL.revokeObjectURL(iframe.src);
+        iframe.src = '';
+    }
+    document.getElementById('readerIframe').classList.add('hidden');
+    document.getElementById('readerBody').classList.remove('hidden');
     hideReaderPopup();
 }
 
@@ -3086,6 +3008,15 @@ async function performPopupLookup(word) {
 
 function hideReaderPopup() {
     document.getElementById('readerPopup').classList.add('hidden');
+}
+
+function readerLookupFromBox() {
+    const input = document.getElementById('readerLookupInput');
+    const word = input.value.trim().toLowerCase().replace(/[^a-z'-]/g, '');
+    if (!word || word.length < 2) return;
+    const box = document.getElementById('readerLookupBox');
+    const rect = box.getBoundingClientRect();
+    showReaderPopup(word, rect.left, rect.bottom + 5);
 }
 
 function popupFullLookup() {
