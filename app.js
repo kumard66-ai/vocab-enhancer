@@ -2649,17 +2649,40 @@ async function renderPdfCanvas(file, container) {
     container.innerHTML = '';
     container.classList.add('pdf-canvas-viewer');
     STATE.readerPdf = pdf;
-    STATE.readerPdfScale = 1.5;
 
+    const containerWidth = container.clientWidth - 40;
+
+    // Create placeholder divs for all pages
+    const pageDivs = [];
     for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
-        const viewport = page.getViewport({ scale: STATE.readerPdfScale });
+        const unscaledViewport = page.getViewport({ scale: 1 });
+        const scale = containerWidth / unscaledViewport.width;
+        const viewport = page.getViewport({ scale });
 
         const pageDiv = document.createElement('div');
         pageDiv.className = 'pdf-page-wrapper';
         pageDiv.dataset.pageNum = i;
+        pageDiv.dataset.rendered = 'false';
         pageDiv.style.width = viewport.width + 'px';
         pageDiv.style.height = viewport.height + 'px';
+
+        const placeholder = document.createElement('div');
+        placeholder.className = 'pdf-page-placeholder';
+        placeholder.textContent = `Page ${i}`;
+        pageDiv.appendChild(placeholder);
+
+        container.appendChild(pageDiv);
+        pageDivs.push({ pageDiv, pageNum: i, scale, width: viewport.width, height: viewport.height });
+    }
+
+    // Render visible pages and nearby ones
+    async function renderPage(info) {
+        if (info.pageDiv.dataset.rendered === 'true') return;
+        info.pageDiv.dataset.rendered = 'true';
+
+        const page = await pdf.getPage(info.pageNum);
+        const viewport = page.getViewport({ scale: info.scale });
 
         const canvas = document.createElement('canvas');
         canvas.width = viewport.width;
@@ -2676,10 +2699,9 @@ async function renderPdfCanvas(file, container) {
         textContent.items.forEach(item => {
             const span = document.createElement('span');
             span.textContent = item.str;
-            const scale = STATE.readerPdfScale;
-            const fontHeight = Math.abs(item.transform[3]) * scale;
-            const left = item.transform[4] * scale;
-            const top = viewport.height - (item.transform[5] * scale) - fontHeight;
+            const fontHeight = Math.abs(item.transform[3]) * info.scale;
+            const left = item.transform[4] * info.scale;
+            const top = viewport.height - (item.transform[5] * info.scale) - fontHeight;
             span.style.left = left + 'px';
             span.style.top = top + 'px';
             span.style.fontSize = fontHeight + 'px';
@@ -2687,10 +2709,34 @@ async function renderPdfCanvas(file, container) {
             textLayerDiv.appendChild(span);
         });
 
-        pageDiv.appendChild(canvas);
-        pageDiv.appendChild(textLayerDiv);
-        container.appendChild(pageDiv);
+        info.pageDiv.innerHTML = '';
+        info.pageDiv.appendChild(canvas);
+        info.pageDiv.appendChild(textLayerDiv);
     }
+
+    function renderVisiblePages() {
+        const scrollTop = container.scrollTop;
+        const viewHeight = container.clientHeight;
+        const buffer = viewHeight;
+
+        pageDivs.forEach(info => {
+            const top = info.pageDiv.offsetTop;
+            const bottom = top + info.height;
+            if (bottom >= scrollTop - buffer && top <= scrollTop + viewHeight + buffer) {
+                renderPage(info);
+            }
+        });
+    }
+
+    // Render first few pages immediately
+    for (let i = 0; i < Math.min(3, pageDivs.length); i++) {
+        await renderPage(pageDivs[i]);
+    }
+
+    // Lazy render on scroll
+    container.addEventListener('scroll', () => {
+        requestAnimationFrame(renderVisiblePages);
+    });
 }
 
 async function loadReaderUrl() {
