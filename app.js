@@ -476,7 +476,7 @@ function parseCambridge(doc, word) {
             if (t) examples.push(t);
         });
         if (definition) {
-            meanings.push({ partOfSpeech: pos, definitions: [{ definition, example: examples.join(' | ') }] });
+            meanings.push({ partOfSpeech: pos, definitions: [{ definition, example: examples.join(' • ') }] });
         }
     });
 
@@ -523,7 +523,7 @@ function parseOxford(doc, word) {
             if (t) examples.push(t);
         });
         if (definition) {
-            meanings.push({ partOfSpeech: pos, definitions: [{ definition, example: examples.join(' | ') }] });
+            meanings.push({ partOfSpeech: pos, definitions: [{ definition, example: examples.join(' • ') }] });
         }
     });
 
@@ -575,7 +575,7 @@ function parseLongman(doc, word) {
             if (t) examples.push(t);
         });
         if (definition) {
-            meanings.push({ partOfSpeech: pos, definitions: [{ definition, example: examples.join(' | ') }] });
+            meanings.push({ partOfSpeech: pos, definitions: [{ definition, example: examples.join(' • ') }] });
         }
     });
 
@@ -635,7 +635,7 @@ function parseLongman(doc, word) {
             });
             if (definition) {
                 const label = category ? `Business (${category})` : 'Business Dictionary';
-                meanings.push({ partOfSpeech: label, definitions: [{ definition, example: examples.join(' | ') }] });
+                meanings.push({ partOfSpeech: label, definitions: [{ definition, example: examples.join(' • ') }] });
             }
         });
     }
@@ -701,7 +701,7 @@ function parseMerriam(doc, word) {
                 });
             }
             if (definition) {
-                meanings.push({ partOfSpeech: pos, definitions: [{ definition, example: examples.join(' | ') }] });
+                meanings.push({ partOfSpeech: pos, definitions: [{ definition, example: examples.join(' • ') }] });
             }
         });
     });
@@ -747,7 +747,7 @@ function parseMerriam(doc, word) {
                     if (!existingEx) {
                         lastMeaning.definitions[0].example = t;
                     } else if (!existingEx.includes(t.slice(0, 30))) {
-                        lastMeaning.definitions[0].example += ' | ' + t;
+                        lastMeaning.definitions[0].example += ' • ' + t;
                     }
                 }
             });
@@ -810,9 +810,9 @@ function parseVocabulary(doc, word) {
         });
 
         if (definition) {
-            let exampleText = examples.join(' | ');
+            let exampleText = examples.join(' • ');
             if (types.length) {
-                exampleText += (exampleText ? ' | ' : '') + 'Types: ' + types.join('; ');
+                exampleText += (exampleText ? ' • ' : '') + 'Types: ' + types.join('; ');
             }
             senseDefs.push({ definition: (pos ? `(${pos}) ` : '') + definition, example: exampleText });
         }
@@ -1071,8 +1071,8 @@ function getSelectedSaveData() {
     const phrases = [...document.querySelectorAll('[data-save-type="phrase"].selected')].map(el => el.dataset.value);
 
     return {
-        meaning: meanings.join(' | '),
-        example: examples.join(' | '),
+        meaning: meanings.join(' • '),
+        example: examples.join(' • '),
         synonyms,
         antonyms,
         phrases,
@@ -1195,10 +1195,10 @@ function saveCurrentWord() {
     if (existing) {
         // Merge selected data into existing entry
         if (selected.meaning && !existing.meaning?.includes(selected.meaning.slice(0, 30))) {
-            existing.meaning = (existing.meaning ? existing.meaning + ' | ' : '') + selected.meaning;
+            existing.meaning = (existing.meaning ? existing.meaning + ' • ' : '') + selected.meaning;
         }
         if (selected.example && !existing.example?.includes(selected.example.slice(0, 30))) {
-            existing.example = (existing.example ? existing.example + ' | ' : '') + selected.example;
+            existing.example = (existing.example ? existing.example + ' • ' : '') + selected.example;
         }
         const mergeUnique = (arr1, arr2) => [...new Set([...(arr1 || []), ...(arr2 || [])])];
         existing.synonyms = mergeUnique(existing.synonyms, selected.synonyms);
@@ -1206,6 +1206,13 @@ function saveCurrentWord() {
         existing.phrases = mergeUnique(existing.phrases, selected.phrases);
         if (STATE.currentWord.phonetic && !existing.phonetic) existing.phonetic = STATE.currentWord.phonetic;
         if (STATE.currentWord.audio && !existing.audio) existing.audio = STATE.currentWord.audio;
+        // Track multiple sources
+        const newSource = document.getElementById('sourceSelect').value;
+        if (!existing.sources) existing.sources = existing.source ? [existing.source] : [];
+        if (newSource && !existing.sources.includes(newSource)) {
+            existing.sources.push(newSource);
+        }
+        existing.source = existing.sources.join(', ');
         saveWords();
         showToast(`"${existing.word}" enriched with selected data!`, 'success');
         return;
@@ -1335,7 +1342,7 @@ function renderHistory() {
             <td class="td-tags">${(w.phrases || []).map(p => `<span class="mini-tag phrase-tag">${p}</span>`).join('') || '-'}</td>
             <td class="td-tags">${(w.synonyms || []).map(s => `<span class="mini-tag syn-tag">${s}</span>`).join('') || '-'}</td>
             <td class="td-tags">${(w.antonyms || []).map(a => `<span class="mini-tag ant-tag">${a}</span>`).join('') || '-'}</td>
-            <td>${w.source ? `<a href="${getSourceUrl(w.source, w.word) || '#'}" target="_blank" class="source-link">${getSourceLabel(w.source)}</a>` : '-'}</td>
+            <td>${w.sources && w.sources.length ? w.sources.map(s => `<a href="${getSourceUrl(s, w.word) || '#'}" target="_blank" class="source-link">${getSourceLabel(s)}</a>`).join(' ') : (w.source ? `<a href="${getSourceUrl(w.source, w.word) || '#'}" target="_blank" class="source-link">${getSourceLabel(w.source)}</a>` : '-')}</td>
             <td>${formatDate(w.dateAdded)}</td>
             <td><span class="mastery-badge ${w.mastery}">${w.mastery}</span></td>
             <td>
