@@ -366,6 +366,33 @@
                     <i class="fas fa-magic"></i> Extract Words
                 </button>
             </div>
+
+            <!-- Bulk Word List Upload -->
+            <div class="manual-entry" style="margin-top:1.5rem">
+                <h3><i class="fas fa-list"></i> Bulk Word List</h3>
+                <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:0.75rem">Paste a list of words (one per line or comma-separated) and select a source to look them all up.</p>
+                <textarea id="bulkWordList" rows="6" placeholder="word1&#10;word2&#10;word3&#10;&#10;or: word1, word2, word3"></textarea>
+                <div style="display:flex;align-items:center;gap:0.75rem;margin-top:0.75rem;flex-wrap:wrap">
+                    <label style="font-size:0.85rem;font-weight:500;color:var(--text-secondary)">Source:</label>
+                    <select id="bulkSourceSelect" style="padding:0.5rem 1rem;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-card);color:var(--text);font-size:0.875rem">
+                        <option value="free">Free Dictionary API</option>
+                        <option value="vocabulary">Vocabulary.com</option>
+                        <option value="cambridge">Cambridge Dictionary</option>
+                        <option value="oxford">Oxford Dictionary</option>
+                        <option value="merriam">Merriam-Webster</option>
+                        <option value="longman">Longman (LDOCE)</option>
+                    </select>
+                    <button id="bulkLookupBtn" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Lookup & Save All
+                    </button>
+                </div>
+                <div id="bulkProgress" class="upload-progress hidden" style="margin-top:1rem">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="bulkProgressFill"></div>
+                    </div>
+                    <p id="bulkProgressText">Processing...</p>
+                </div>
+            </div>
         </section>
 
         <!-- Flashcards Section -->
@@ -564,6 +591,8 @@
                 <button class="btn-icon" onclick="closeEditModal()"><i class="fas fa-times"></i></button>
             </div>
             <div class="modal-body">
+                <label>Part of Speech</label>
+                <input type="text" id="editPartOfSpeech">
                 <label>Meaning</label>
                 <textarea id="editMeaning" rows="3"></textarea>
                 <label>Example</label>

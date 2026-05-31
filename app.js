@@ -1390,6 +1390,7 @@ function openEditModal(id) {
     if (!word) return;
     STATE.editingWordId = id;
     document.getElementById('editWordTitle').textContent = word.word;
+    document.getElementById('editPartOfSpeech').value = word.partOfSpeech || '';
     document.getElementById('editMeaning').value = word.meaning || '';
     document.getElementById('editExample').value = word.example || '';
     document.getElementById('editPhrases').value = (word.phrases || []).join(', ');
@@ -1406,6 +1407,7 @@ function closeEditModal() {
 function saveEditWord() {
     const word = STATE.words.find(w => w.id === STATE.editingWordId);
     if (!word) return;
+    word.partOfSpeech = document.getElementById('editPartOfSpeech').value.trim();
     word.meaning = document.getElementById('editMeaning').value.trim();
     word.example = document.getElementById('editExample').value.trim();
     word.phrases = document.getElementById('editPhrases').value.split(',').map(s => s.trim()).filter(Boolean);
@@ -1484,6 +1486,7 @@ function initUpload() {
     document.getElementById('extractManualBtn').addEventListener('click', extractFromManualText);
     document.getElementById('lookupAllBtn').addEventListener('click', lookupAllExtracted);
     document.getElementById('saveAllBtn').addEventListener('click', saveAllExtracted);
+    document.getElementById('bulkLookupBtn').addEventListener('click', bulkLookupWords);
 }
 
 async function processFile(file) {
@@ -1702,6 +1705,80 @@ async function lookupAllExtracted() {
 
 async function saveAllExtracted() {
     await lookupAllExtracted();
+}
+
+async function bulkLookupWords() {
+    const text = document.getElementById('bulkWordList').value.trim();
+    if (!text) { showToast('Please enter some words', 'error'); return; }
+
+    const words = text.split(/[\n,]+/).map(w => w.trim()).filter(Boolean);
+    if (!words.length) { showToast('No valid words found', 'error'); return; }
+
+    const source = document.getElementById('bulkSourceSelect').value;
+    const progressDiv = document.getElementById('bulkProgress');
+    const progressFill = document.getElementById('bulkProgressFill');
+    const progressText = document.getElementById('bulkProgressText');
+
+    progressDiv.classList.remove('hidden');
+    let added = 0, failed = 0;
+
+    for (let i = 0; i < words.length; i++) {
+        const word = words[i];
+        const pct = Math.round(((i + 1) / words.length) * 100);
+        progressFill.style.width = pct + '%';
+        progressText.textContent = `Looking up "${word}" (${i + 1}/${words.length})...`;
+
+        try {
+            let data = null;
+
+            if (source !== 'free') {
+                try {
+                    data = await scrapeFromSource(source, word);
+                } catch (e) {}
+            }
+
+            if (!data) {
+                data = await fetchWordDataFromAPI(word);
+            }
+
+            if (data) {
+                const entry = {
+                    id: Date.now() + Math.random(),
+                    word: data.word || word,
+                    phonetic: data.phonetic || data.phonetics?.[0]?.text || '',
+                    partOfSpeech: data.meanings?.[0]?.partOfSpeech || '',
+                    meaning: data.meanings?.[0]?.definitions?.[0]?.definition || '',
+                    example: data.meanings?.[0]?.definitions?.[0]?.example || '',
+                    synonyms: data.meanings?.[0]?.definitions?.[0]?.synonyms || data.meanings?.[0]?.synonyms || [],
+                    antonyms: data.meanings?.[0]?.definitions?.[0]?.antonyms || data.meanings?.[0]?.antonyms || [],
+                    phrases: [],
+                    audio: data.phonetics?.find(p => p.audio)?.audio || '',
+                    source: source,
+                    sources: [source],
+                    dateAdded: new Date().toISOString(),
+                    mastery: 'new',
+                    reviewCount: 0,
+                };
+
+                if (!STATE.words.find(w => w.word.toLowerCase() === entry.word.toLowerCase())) {
+                    STATE.words.push(entry);
+                    added++;
+                }
+            } else {
+                failed++;
+            }
+
+            await new Promise(r => setTimeout(r, 350));
+        } catch (e) {
+            failed++;
+        }
+    }
+
+    saveWords();
+    renderHistory();
+    progressText.textContent = `Done! Added ${added} words.${failed ? ` ${failed} not found.` : ''}`;
+    progressFill.style.width = '100%';
+    showToast(`Added ${added} words from ${getSourceLabel(source)}${failed ? `, ${failed} not found` : ''}`, 'success');
 }
 
 // --- Flashcards ---
