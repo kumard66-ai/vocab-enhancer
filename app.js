@@ -484,12 +484,43 @@ function parseMerriam(doc, word) {
         antonyms.push(el.textContent?.trim());
     });
 
-    // Phrases
+    // Related Phrases — from the #related-phrases section and inline phrase markers
     const phrases = [];
-    doc.querySelectorAll('.drp, .if').forEach(el => {
+    const phrasesSection = doc.getElementById('related-phrases') || doc.querySelector('[id*="related-phrases"]');
+    if (phrasesSection) {
+        const phraseContainer = phrasesSection.closest('div') || phrasesSection.parentElement;
+        if (phraseContainer) {
+            phraseContainer.querySelectorAll('a').forEach(el => {
+                const phrase = el.textContent?.trim();
+                if (phrase && phrase.length > 1) phrases.push(phrase);
+            });
+        }
+    }
+    // Also grab inline defined run-on phrases
+    doc.querySelectorAll('.drp, .dro a, .if').forEach(el => {
         const phrase = el.textContent?.trim();
-        if (phrase && phrase.includes(' ')) phrases.push(phrase);
+        if (phrase && phrase.includes(' ') && !phrases.includes(phrase)) phrases.push(phrase);
     });
+
+    // Examples from the #examples section (real-world usage)
+    const examplesSection = doc.getElementById('examples') || doc.querySelector('[id*="examples"]');
+    if (examplesSection) {
+        const exContainer = examplesSection.closest('div') || examplesSection.parentElement;
+        if (exContainer) {
+            exContainer.querySelectorAll('.t, .sents .t, [class*="ex-sent"]').forEach(ex => {
+                const t = ex.textContent?.trim();
+                if (t && meanings.length > 0) {
+                    const lastMeaning = meanings[meanings.length - 1];
+                    const existingEx = lastMeaning.definitions[0]?.example || '';
+                    if (!existingEx) {
+                        lastMeaning.definitions[0].example = t;
+                    } else if (!existingEx.includes(t.slice(0, 30))) {
+                        lastMeaning.definitions[0].example += ' | ' + t;
+                    }
+                }
+            });
+        }
+    }
 
     if (meanings.length === 0) throw new Error('No meanings');
     return buildStandardResult(word, phonetic, audioFile, meanings, synonyms, antonyms, phrases);
@@ -535,9 +566,9 @@ function buildStandardResult(word, phonetic, audio, meanings, synonyms = [], ant
         phonetic: phonetic ? `/${phonetic}/` : '',
         phonetics: audio ? [{ text: phonetic, audio }] : [],
         meanings: Object.values(grouped),
-        _synonyms: [...new Set(synonyms.filter(Boolean))].slice(0, 10),
-        _antonyms: [...new Set(antonyms.filter(Boolean))].slice(0, 10),
-        _phrases: [...new Set(phrases.filter(Boolean))].slice(0, 10),
+        _synonyms: [...new Set(synonyms.filter(Boolean))].slice(0, 15),
+        _antonyms: [...new Set(antonyms.filter(Boolean))].slice(0, 15),
+        _phrases: [...new Set(phrases.filter(Boolean))].slice(0, 20),
     };
     return result;
 }
