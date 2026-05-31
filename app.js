@@ -1,10 +1,5 @@
 // ===== VocabVault - Main Application =====
 
-// --- PDF.js Worker Setup ---
-if (typeof pdfjsLib !== 'undefined') {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-}
-
 // --- State Management ---
 const STATE = {
     words: JSON.parse(localStorage.getItem('vocabWords') || '[]'),
@@ -17,6 +12,9 @@ const STATE = {
 
 // --- Initialize ---
 document.addEventListener('DOMContentLoaded', () => {
+    if (typeof pdfjsLib !== 'undefined') {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
     initTheme();
     initNavigation();
     initAuth();
@@ -2539,7 +2537,10 @@ function initReader() {
     // File open
     const dropZone = document.getElementById('readerDropZone');
     const fileInput = document.getElementById('readerFileInput');
-    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('click', (e) => {
+        if (e.target.tagName === 'LABEL' || e.target.closest('label')) return;
+        fileInput.click();
+    });
     dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
     dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
     dropZone.addEventListener('drop', (e) => {
@@ -2549,6 +2550,7 @@ function initReader() {
     });
     fileInput.addEventListener('change', () => {
         if (fileInput.files.length) openReaderFile(fileInput.files[0]);
+        fileInput.value = '';
     });
 
     // URL load
@@ -2607,7 +2609,12 @@ async function openReaderFile(file) {
 
     try {
         if (file.name.endsWith('.pdf')) {
-            await renderPdfCanvas(file, readerBody);
+            try {
+                await renderPdfCanvas(file, readerBody);
+            } catch (pdfErr) {
+                console.error('PDF canvas render failed:', pdfErr);
+                readerBody.innerHTML = '<p style="color:var(--danger);padding:2rem">Failed to render PDF: ' + pdfErr.message + '</p>';
+            }
         } else {
             let html = '';
             if (file.name.endsWith('.txt') || file.name.endsWith('.md')) {
