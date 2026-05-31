@@ -1245,6 +1245,18 @@ function saveCurrentWord() {
 }
 
 // --- History ---
+function updateHistoryStats() {
+    const count = STATE.words.length;
+    document.getElementById('historyWordCount').textContent = count;
+    const dataStr = localStorage.getItem('vocabWords') || '[]';
+    const bytes = new Blob([dataStr]).size;
+    let sizeStr;
+    if (bytes < 1024) sizeStr = bytes + ' B';
+    else if (bytes < 1024 * 1024) sizeStr = (bytes / 1024).toFixed(1) + ' KB';
+    else sizeStr = (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+    document.getElementById('historyMemoryUsed').textContent = sizeStr;
+}
+
 function initHistory() {
     document.getElementById('historySearch').addEventListener('input', renderHistory);
     document.getElementById('historyFilter').addEventListener('change', renderHistory);
@@ -1323,6 +1335,7 @@ function renderHistory() {
     if (filtered.length === 0) {
         table.classList.add('hidden');
         empty.classList.remove('hidden');
+        updateHistoryStats();
         return;
     }
 
@@ -1362,6 +1375,7 @@ function renderHistory() {
             </td>
         </tr>
     `).join('');
+    updateHistoryStats();
 }
 
 function pronounceHistoryWord(word, audioUrl) {
@@ -2555,12 +2569,15 @@ function initReader() {
     document.getElementById('popupLookupFull').addEventListener('click', popupFullLookup);
     document.getElementById('popupSave').addEventListener('click', popupSaveWord);
     document.getElementById('popupPronounce').addEventListener('click', popupPronounce);
+    document.getElementById('popupRelookup').addEventListener('click', () => {
+        if (STATE._popupCurrentWord) performPopupLookup(STATE._popupCurrentWord);
+    });
 
     // Save all from sidebar
     document.getElementById('readerSaveAll').addEventListener('click', readerSaveAllSession);
 
-    // Text selection listener on reader body
-    document.getElementById('readerBody').addEventListener('mouseup', handleReaderSelection);
+    // Double-click to lookup word in reader
+    document.getElementById('readerBody').addEventListener('dblclick', handleReaderDblClick);
 
     // Close popup when clicking outside
     document.addEventListener('mousedown', (e) => {
@@ -2580,24 +2597,26 @@ async function openReaderFile(file) {
     readerBody.classList.remove('hidden');
 
     try {
-        let html = '';
-        if (file.name.endsWith('.txt') || file.name.endsWith('.md')) {
-            const text = await file.text();
-            html = text.split('\n').map(line => `<p>${escapeHtml(line) || '&nbsp;'}</p>`).join('');
-        } else if (file.name.endsWith('.html') || file.name.endsWith('.htm')) {
-            html = await file.text();
-        } else if (file.name.endsWith('.docx')) {
-            const arrayBuffer = await file.arrayBuffer();
-            const result = await mammoth.convertToHtml({ arrayBuffer });
-            html = result.value;
-        } else if (file.name.endsWith('.pdf')) {
-            html = await renderPdfToHtml(file);
+        if (file.name.endsWith('.pdf')) {
+            await renderPdfCanvas(file, readerBody);
         } else {
-            const text = await file.text();
-            html = `<pre>${escapeHtml(text)}</pre>`;
+            let html = '';
+            if (file.name.endsWith('.txt') || file.name.endsWith('.md')) {
+                const text = await file.text();
+                html = text.split('\n').map(line => `<p>${escapeHtml(line) || '&nbsp;'}</p>`).join('');
+            } else if (file.name.endsWith('.html') || file.name.endsWith('.htm')) {
+                html = await file.text();
+            } else if (file.name.endsWith('.docx')) {
+                const arrayBuffer = await file.arrayBuffer();
+                const result = await mammoth.convertToHtml({ arrayBuffer });
+                html = result.value;
+            } else {
+                const text = await file.text();
+                html = `<pre>${escapeHtml(text)}</pre>`;
+            }
+            readerBody.innerHTML = html;
         }
 
-        readerBody.innerHTML = html;
         document.getElementById('readerDocTitle').innerHTML = `<i class="fas fa-file"></i> ${file.name}`;
         readerContent.classList.remove('hidden');
         hideReaderInputPanels();
@@ -2608,30 +2627,49 @@ async function openReaderFile(file) {
     }
 }
 
-async function renderPdfToHtml(file) {
+async function renderPdfCanvas(file, container) {
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    let html = '';
+    container.innerHTML = '';
+    container.classList.add('pdf-canvas-viewer');
+    STATE.readerPdf = pdf;
+    STATE.readerPdfScale = 1.5;
 
     for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        let pageText = '';
-        let lastY = null;
+        const viewport = page.getViewport({ scale: STATE.readerPdfScale });
 
-        content.items.forEach(item => {
-            if (lastY !== null && Math.abs(item.transform[5] - lastY) > 5) {
-                pageText += '</p><p>';
-            }
-            pageText += item.str + ' ';
-            lastY = item.transform[5];
+        const pageDiv = document.createElement('div');
+        pageDiv.className = 'pdf-page-wrapper';
+        pageDiv.dataset.pageNum = i;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        const ctx = canvas.getContext('2d');
+        await page.render({ canvasContext: ctx, viewport }).promise;
+
+        const textLayerDiv = document.createElement('div');
+        textLayerDiv.className = 'pdf-text-layer';
+        textLayerDiv.style.width = viewport.width + 'px';
+        textLayerDiv.style.height = viewport.height + 'px';
+
+        const textContent = await page.getTextContent();
+        textContent.items.forEach(item => {
+            const span = document.createElement('span');
+            span.textContent = item.str;
+            const tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
+            span.style.left = tx[4] + 'px';
+            span.style.top = (viewport.height - tx[5]) + 'px';
+            span.style.fontSize = Math.abs(item.transform[0] * STATE.readerPdfScale) + 'px';
+            span.style.fontFamily = item.fontName || 'sans-serif';
+            textLayerDiv.appendChild(span);
         });
 
-        html += `<div class="pdf-page"><p>${pageText}</p></div>`;
-        if (i < pdf.numPages) html += '<hr style="margin:2rem 0;opacity:0.3">';
+        pageDiv.appendChild(canvas);
+        pageDiv.appendChild(textLayerDiv);
+        container.appendChild(pageDiv);
     }
-
-    return html;
 }
 
 async function loadReaderUrl() {
@@ -2830,7 +2868,7 @@ function readerZoom(delta) {
 }
 
 // --- Reader Selection & Popup ---
-async function handleReaderSelection(e) {
+function handleReaderDblClick(e) {
     const selection = window.getSelection();
     const selectedText = selection.toString().trim();
 
@@ -2838,7 +2876,6 @@ async function handleReaderSelection(e) {
         return;
     }
 
-    // Clean the word
     const word = selectedText.replace(/[^a-zA-Z'-]/g, '').toLowerCase();
     if (word.length < 2) return;
 
@@ -2855,8 +2892,8 @@ async function showReaderPopup(word, x, y) {
     const viewH = window.innerHeight;
     let left = x + 10;
     let top = y + 10;
-    if (left + 420 > viewW) left = x - 320;
-    if (top + 250 > viewH) top = y - 260;
+    if (left + 450 > viewW) left = x - 440;
+    if (top + 350 > viewH) top = y - 360;
     popup.style.left = Math.max(10, left) + 'px';
     popup.style.top = Math.max(10, top) + 'px';
 
@@ -2866,24 +2903,104 @@ async function showReaderPopup(word, x, y) {
     popup.classList.remove('hidden');
 
     STATE.readerPopupWord = null;
+    STATE._popupCurrentWord = word;
+
+    await performPopupLookup(word);
+}
+
+async function performPopupLookup(word) {
+    const loading = document.getElementById('popupLoading');
+    const result = document.getElementById('popupResult');
+    const source = document.getElementById('popupSourceSelect').value;
+
+    loading.classList.remove('hidden');
+    result.classList.add('hidden');
+
+    let data = null;
 
     try {
-        const data = await fetchWordData(word);
+        if (source !== 'free') {
+            try {
+                data = await scrapeFromSource(source, word);
+            } catch (e) {}
+        }
+        if (!data) {
+            data = await fetchWordDataFromAPI(word);
+        }
+
+        const phonetic = data.phonetic || data.phonetics?.[0]?.text || '';
+        const audio = data.phonetics?.find(p => p.audio)?.audio || '';
+        const pos = data.meanings[0]?.partOfSpeech || '';
+
+        const allSyns = [];
+        const allAnts = [];
+        const allPhrases = [];
+        data.meanings.forEach(m => {
+            m.definitions.forEach(d => {
+                (d.synonyms || []).forEach(s => { if (!allSyns.includes(s)) allSyns.push(s); });
+                (d.antonyms || []).forEach(a => { if (!allAnts.includes(a)) allAnts.push(a); });
+            });
+            (m.synonyms || []).forEach(s => { if (!allSyns.includes(s)) allSyns.push(s); });
+            (m.antonyms || []).forEach(a => { if (!allAnts.includes(a)) allAnts.push(a); });
+        });
+        if (data._phrases) allPhrases.push(...data._phrases);
+
+        const relatedTopics = data._relatedTopics || [];
+
         STATE.readerPopupWord = {
-            word: data.word,
-            phonetic: data.phonetic || data.phonetics?.[0]?.text || '',
-            partOfSpeech: data.meanings[0]?.partOfSpeech || '',
+            word: data.word || word,
+            phonetic,
+            partOfSpeech: pos,
             meaning: data.meanings[0]?.definitions[0]?.definition || '',
             example: data.meanings[0]?.definitions[0]?.example || '',
-            synonyms: [],
-            antonyms: [],
-            audio: data.phonetics?.find(p => p.audio)?.audio || '',
+            synonyms: allSyns,
+            antonyms: allAnts,
+            phrases: allPhrases,
+            relatedTopics,
+            audio,
         };
 
-        document.getElementById('popupPos').textContent = STATE.readerPopupWord.partOfSpeech;
-        document.getElementById('popupPhonetic').textContent = STATE.readerPopupWord.phonetic;
-        document.getElementById('popupMeaning').textContent = STATE.readerPopupWord.meaning;
-        document.getElementById('popupExample').textContent = STATE.readerPopupWord.example ? `"${STATE.readerPopupWord.example}"` : '';
+        document.getElementById('popupPos').textContent = pos;
+        document.getElementById('popupPhonetic').textContent = phonetic;
+
+        // Render meanings
+        let meaningsHtml = '';
+        data.meanings.forEach(m => {
+            m.definitions.slice(0, 3).forEach(d => {
+                meaningsHtml += `<div class="popup-def"><span class="popup-def-pos">${m.partOfSpeech}</span> ${d.definition}`;
+                if (d.example) meaningsHtml += `<div class="popup-def-example">"${d.example}"</div>`;
+                meaningsHtml += `</div>`;
+            });
+        });
+        document.getElementById('popupMeanings').innerHTML = meaningsHtml;
+
+        // Synonyms
+        const synSection = document.getElementById('popupSynSection');
+        if (allSyns.length) {
+            synSection.classList.remove('hidden');
+            document.getElementById('popupSynonyms').innerHTML = allSyns.slice(0, 8).map(s => `<span class="mini-tag syn-tag">${s}</span>`).join('');
+        } else synSection.classList.add('hidden');
+
+        // Antonyms
+        const antSection = document.getElementById('popupAntSection');
+        if (allAnts.length) {
+            antSection.classList.remove('hidden');
+            document.getElementById('popupAntonyms').innerHTML = allAnts.slice(0, 8).map(a => `<span class="mini-tag ant-tag">${a}</span>`).join('');
+        } else antSection.classList.add('hidden');
+
+        // Phrases
+        const phraseSection = document.getElementById('popupPhraseSection');
+        if (allPhrases.length) {
+            phraseSection.classList.remove('hidden');
+            document.getElementById('popupPhrases').innerHTML = allPhrases.slice(0, 6).map(p => `<span class="mini-tag phrase-tag">${p}</span>`).join('');
+        } else phraseSection.classList.add('hidden');
+
+        // Related Topics
+        const topicSection = document.getElementById('popupTopicSection');
+        if (relatedTopics.length) {
+            topicSection.classList.remove('hidden');
+            document.getElementById('popupTopics').innerHTML = relatedTopics.map(t => `<span class="mini-tag topic-tag">${t}</span>`).join('');
+        } else topicSection.classList.add('hidden');
 
         loading.classList.add('hidden');
         result.classList.remove('hidden');
@@ -2892,8 +3009,11 @@ async function showReaderPopup(word, x, y) {
         result.classList.remove('hidden');
         document.getElementById('popupPos').textContent = '';
         document.getElementById('popupPhonetic').textContent = '';
-        document.getElementById('popupMeaning').textContent = 'Word not found in dictionary.';
-        document.getElementById('popupExample').textContent = '';
+        document.getElementById('popupMeanings').innerHTML = '<div class="popup-def" style="color:var(--danger)">Word not found in dictionary.</div>';
+        document.getElementById('popupSynSection').classList.add('hidden');
+        document.getElementById('popupAntSection').classList.add('hidden');
+        document.getElementById('popupPhraseSection').classList.add('hidden');
+        document.getElementById('popupTopicSection').classList.add('hidden');
     }
 }
 
@@ -2923,8 +3043,11 @@ function popupSaveWord() {
         return;
     }
 
+    const popupSource = document.getElementById('popupSourceSelect').value;
     const entry = {
         ...STATE.readerPopupWord,
+        source: popupSource,
+        sources: [popupSource],
         id: Date.now(),
         dateAdded: new Date().toISOString(),
         mastery: 'new',

@@ -148,6 +148,11 @@
                 <p>All your saved words in one place</p>
             </div>
 
+            <div class="history-stats-bar">
+                <span class="history-stat"><i class="fas fa-book"></i> Total Words: <strong id="historyWordCount">0</strong></span>
+                <span class="history-stat"><i class="fas fa-database"></i> Memory Used: <strong id="historyMemoryUsed">0 KB</strong></span>
+            </div>
+
             <div class="history-toolbar">
                 <div class="search-filter">
                     <input type="text" id="historySearch" placeholder="Filter words...">
@@ -283,28 +288,54 @@
 
             <!-- Lookup Popup (appears on text selection) -->
             <div id="readerPopup" class="reader-popup hidden">
-                <div class="popup-word" id="popupWord"></div>
+                <div class="popup-header">
+                    <div class="popup-word" id="popupWord"></div>
+                    <button id="popupClose" class="btn-icon" title="Close"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="popup-source-row">
+                    <select id="popupSourceSelect" class="popup-source-select">
+                        <option value="free">Free Dictionary</option>
+                        <option value="longman">Longman (LDOCE)</option>
+                        <option value="vocabulary">Vocabulary.com</option>
+                        <option value="cambridge">Cambridge</option>
+                        <option value="oxford">Oxford</option>
+                        <option value="merriam">Merriam-Webster</option>
+                    </select>
+                    <button id="popupRelookup" class="btn btn-outline btn-sm" title="Lookup with selected source"><i class="fas fa-redo"></i></button>
+                </div>
                 <div class="popup-loading hidden" id="popupLoading">
                     <i class="fas fa-spinner fa-spin"></i> Looking up...
                 </div>
                 <div class="popup-result hidden" id="popupResult">
-                    <span class="popup-pos" id="popupPos"></span>
-                    <span class="popup-phonetic" id="popupPhonetic"></span>
-                    <p class="popup-meaning" id="popupMeaning"></p>
-                    <p class="popup-example" id="popupExample"></p>
+                    <div class="popup-meta">
+                        <span class="popup-pos" id="popupPos"></span>
+                        <span class="popup-phonetic" id="popupPhonetic"></span>
+                        <button id="popupPronounce" class="btn-icon" title="Pronounce"><i class="fas fa-volume-up"></i></button>
+                    </div>
+                    <div class="popup-meanings" id="popupMeanings"></div>
+                    <div class="popup-tags-section hidden" id="popupSynSection">
+                        <label>Synonyms</label>
+                        <div class="popup-tags" id="popupSynonyms"></div>
+                    </div>
+                    <div class="popup-tags-section hidden" id="popupAntSection">
+                        <label>Antonyms</label>
+                        <div class="popup-tags" id="popupAntonyms"></div>
+                    </div>
+                    <div class="popup-tags-section hidden" id="popupPhraseSection">
+                        <label>Phrases</label>
+                        <div class="popup-tags" id="popupPhrases"></div>
+                    </div>
+                    <div class="popup-tags-section hidden" id="popupTopicSection">
+                        <label>Related Topics</label>
+                        <div class="popup-tags" id="popupTopics"></div>
+                    </div>
                 </div>
                 <div class="popup-actions">
-                    <button id="popupLookupFull" class="btn btn-primary btn-sm">
-                        <i class="fas fa-search"></i> Full Lookup
-                    </button>
                     <button id="popupSave" class="btn btn-success btn-sm">
                         <i class="fas fa-plus"></i> Save
                     </button>
-                    <button id="popupPronounce" class="btn btn-outline btn-sm">
-                        <i class="fas fa-volume-up"></i>
-                    </button>
-                    <button id="popupClose" class="btn btn-outline btn-sm">
-                        <i class="fas fa-times"></i>
+                    <button id="popupLookupFull" class="btn btn-primary btn-sm">
+                        <i class="fas fa-external-link-alt"></i> Full Lookup
                     </button>
                 </div>
             </div>
