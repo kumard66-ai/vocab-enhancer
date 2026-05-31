@@ -2122,6 +2122,7 @@ async function indexPdfDictionary(file) {
         opt.textContent = `📖 ${name}`;
         select.insertBefore(opt, select.querySelector('[value="custom"]'));
         select.value = id;
+        document.getElementById('removePdfBtn').classList.remove('hidden');
 
         showToast(`"${name}" indexed! ${Object.keys(entries).length} entries from ${totalPages} pages.`, 'success');
     } catch (err) {
