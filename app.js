@@ -196,10 +196,18 @@ function initSearch() {
     const input = document.getElementById('wordInput');
     const btn = document.getElementById('searchBtn');
     const openBtn = document.getElementById('openSourceBtn');
+    const sourceSelect = document.getElementById('sourceSelect');
 
     btn.addEventListener('click', () => searchWord(input.value.trim()));
     input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') searchWord(input.value.trim());
+    });
+
+    // Re-search automatically when source changes
+    sourceSelect.addEventListener('change', () => {
+        if (sourceSelect.value === 'custom') return;
+        const word = input.value.trim();
+        if (word) searchWord(word);
     });
 
     openBtn.addEventListener('click', openInSource);
@@ -1064,10 +1072,7 @@ function initCustomSources() {
         if (select.value === 'custom') {
             addCustomSource();
             select.value = 'free';
-            return;
         }
-        const word = document.getElementById('wordInput').value.trim();
-        if (word) searchWord(word);
     });
     // Load existing custom sources into dropdown
     const custom = JSON.parse(localStorage.getItem('vocabCustomSources') || '[]');
