@@ -636,27 +636,104 @@ function parseMerriam(doc, word) {
 function parseVocabulary(doc, word) {
     const shortDef = doc.querySelector('.short')?.textContent?.trim() || '';
     const longDef = doc.querySelector('.long')?.textContent?.trim() || '';
-    const definition = shortDef || longDef;
-    if (!definition) throw new Error('No meanings');
 
-    const examples = [];
-    doc.querySelectorAll('.example').forEach(ex => {
-        const t = ex.textContent?.trim();
-        if (t) examples.push(t);
-    });
+    const meanings = [];
 
-    // Vocabulary.com has related words
-    const synonyms = [];
-    doc.querySelectorAll('.related-words a, .synonym a').forEach(el => {
-        synonyms.push(el.textContent?.trim());
-    });
-
-    const definitions = [{ definition, example: examples.join(' | ') }];
-    if (shortDef && longDef) {
-        definitions.push({ definition: longDef, example: '' });
+    // Short/Long description as overview
+    if (shortDef || longDef) {
+        const overviewDefs = [];
+        if (shortDef) overviewDefs.push({ definition: shortDef, example: '' });
+        if (longDef && longDef !== shortDef) overviewDefs.push({ definition: longDef, example: '' });
+        meanings.push({ partOfSpeech: 'Overview', definitions: overviewDefs });
     }
-    const meanings = [{ partOfSpeech: '', definitions }];
-    return buildStandardResult(word, '', '', meanings, synonyms, [], []);
+
+    // "Definitions of [word]" — individual senses with POS, definition, examples, types, synonyms
+    const senses = doc.querySelectorAll('.sense');
+    const synonyms = [];
+    senses.forEach(sense => {
+        const posEl = sense.querySelector('.pos-icon');
+        const pos = posEl?.textContent?.trim() || '';
+        const defEl = sense.querySelector('.definition');
+        let definition = defEl?.textContent?.trim() || '';
+        // Remove the POS text from definition start
+        if (pos && definition.startsWith(pos)) {
+            definition = definition.slice(pos.length).trim();
+        }
+
+        const examples = [];
+        sense.querySelectorAll('.defContent > .example').forEach(ex => {
+            const t = ex.textContent?.trim().replace(/[""]/g, '');
+            if (t) examples.push(t);
+        });
+
+        // Types (sub-definitions like "celestial hierarchy", "data hierarchy")
+        const types = [];
+        sense.querySelectorAll('.instances .div-replace-dd').forEach(dd => {
+            const typeWord = dd.querySelector('.word')?.textContent?.trim() || '';
+            const typeDef = dd.querySelector('.definition')?.textContent?.trim() || '';
+            if (typeWord && typeDef) types.push(`${typeWord}: ${typeDef}`);
+        });
+
+        // Synonyms from this sense
+        sense.querySelectorAll('.instances .word').forEach(el => {
+            const parent = el.closest('.div-replace-dl');
+            const detail = parent?.querySelector('.detail')?.textContent?.trim() || '';
+            if (detail.includes('synonym')) {
+                synonyms.push(el.textContent?.trim());
+            }
+        });
+
+        if (definition) {
+            let exampleText = examples.join(' | ');
+            if (types.length) {
+                exampleText += (exampleText ? ' | ' : '') + 'Types: ' + types.join('; ');
+            }
+            meanings.push({ partOfSpeech: pos, definitions: [{ definition, example: exampleText }] });
+        }
+    });
+
+    // Synonyms from instances sections
+    doc.querySelectorAll('.instances .word').forEach(el => {
+        const parent = el.closest('.div-replace-dl');
+        const detail = parent?.querySelector('.detail')?.textContent?.trim() || '';
+        if (detail.includes('synonym')) {
+            const t = el.textContent?.trim();
+            if (t && !synonyms.includes(t)) synonyms.push(t);
+        }
+    });
+
+    if (meanings.length === 0) throw new Error('No meanings');
+
+    // UK/US pronunciation
+    let ukIpa = '', usIpa = '', ukAudio = '', usAudio = '';
+    const ipaBlocks = doc.querySelectorAll('.ipa-with-audio');
+    ipaBlocks.forEach(block => {
+        const ipa = block.querySelector('.span-replace-h3')?.textContent?.trim() || '';
+        if (block.querySelector('.us-flag-icon')) {
+            usIpa = ipa;
+            const audioEl = block.querySelector('[data-audio]');
+            if (audioEl) {
+                const code = audioEl.getAttribute('data-audio');
+                usAudio = `https://audio.vocab.com/1.0/us/${code}.mp3`;
+            }
+        } else if (block.querySelector('.uk-flag-icon')) {
+            ukIpa = ipa;
+            const audioEl = block.querySelector('.pron-audio');
+            if (audioEl) ukAudio = audioEl.getAttribute('src') || '';
+        }
+    });
+
+    const phonetic = usIpa || ukIpa;
+    const audio = usAudio || ukAudio;
+    const result = buildStandardResult(word, phonetic, audio, meanings, synonyms, [], []);
+
+    if (ukIpa || usIpa) {
+        result._pronunciation = {
+            uk: { ipa: ukIpa, audio: ukAudio },
+            us: { ipa: usIpa, audio: usAudio },
+        };
+    }
+    return result;
 }
 
 function buildStandardResult(word, phonetic, audio, meanings, synonyms = [], antonyms = [], phrases = []) {
