@@ -413,14 +413,18 @@ function parseLongman(doc, word) {
     const audioSrc = doc.querySelector('[data-src-mp3]')?.getAttribute('data-src-mp3') || '';
 
     const meanings = [];
-    const senses = doc.querySelectorAll('.Entry .Sense');
+
+    // Main entry definitions (exclude business dictionary senses)
+    const mainEntry = doc.querySelector('.ldoceEntry.Entry') || doc.querySelector('.Entry');
+    const senses = mainEntry ? mainEntry.querySelectorAll('.Sense') : doc.querySelectorAll('.Entry .Sense');
     senses.forEach(sense => {
+        if (sense.closest('.bussdictEntry')) return;
         const pos = sense.closest('.Entry')?.querySelector('.POS')?.textContent?.trim() || '';
         const defEl = sense.querySelector('.DEF');
         const definition = defEl?.textContent?.trim() || '';
         const examples = [];
-        sense.querySelectorAll('.EXAMPLE, .COLLOINEXA').forEach(ex => {
-            const t = ex.textContent?.trim();
+        sense.querySelectorAll('.EXAMPLE').forEach(ex => {
+            const t = ex.textContent?.trim().replace(/^•\s*/, '');
             if (t) examples.push(t);
         });
         if (definition) {
@@ -428,62 +432,91 @@ function parseLongman(doc, word) {
         }
     });
 
-    // Examples from the Corpus
-    const corpusSection = doc.querySelector('.Corpus, .exaGroup');
-    if (corpusSection) {
+    // Examples from the Corpus (.exaGroup with .cexa1g1.exa children)
+    const corpusGroups = doc.querySelectorAll('.exaGroup');
+    if (corpusGroups.length > 0) {
         const corpusExamples = [];
-        corpusSection.querySelectorAll('.EXAMPLE, p').forEach(ex => {
-            const t = ex.textContent?.trim();
-            if (t && t.length > 10) corpusExamples.push(t);
+        corpusGroups.forEach(group => {
+            group.querySelectorAll('.exa, .cexa1g1').forEach(ex => {
+                const t = ex.textContent?.trim().replace(/^•\s*/, '');
+                if (t && t.length > 5) corpusExamples.push(t);
+            });
         });
         if (corpusExamples.length > 0) {
             meanings.push({
                 partOfSpeech: 'Examples from Corpus',
-                definitions: [{ definition: corpusExamples.join(' | '), example: '' }]
+                definitions: corpusExamples.map(ex => ({ definition: ex, example: '' }))
             });
         }
     }
 
-    // From Longman Business Dictionary
-    const busDict = doc.querySelector('.busdict');
-    if (busDict) {
-        const busSenses = busDict.querySelectorAll('.Sense');
-        busSenses.forEach(sense => {
-            const category = sense.querySelector('.SIGNPOST, .neutral')?.textContent?.trim() || '';
-            const definition = sense.querySelector('.DEF')?.textContent?.trim() || '';
+    // Thesaurus (.ThesBox > .Exponent)
+    const thesBox = doc.querySelector('.ThesBox');
+    if (thesBox) {
+        const thesEntries = [];
+        thesBox.querySelectorAll('.Exponent').forEach(exp => {
+            const term = exp.querySelector('.EXP, .display')?.textContent?.trim() || '';
+            const def = exp.querySelector('.DEF')?.textContent?.trim() || '';
             const examples = [];
-            sense.querySelectorAll('.EXAMPLE').forEach(ex => {
+            exp.querySelectorAll('.EXAMPLE').forEach(ex => {
                 const t = ex.textContent?.trim();
                 if (t) examples.push(t);
             });
+            if (term && def) {
+                thesEntries.push(`${term}: ${def}${examples.length ? ' — ' + examples.join('; ') : ''}`);
+            }
+        });
+        if (thesEntries.length > 0) {
+            meanings.push({
+                partOfSpeech: 'Thesaurus',
+                definitions: thesEntries.map(entry => ({ definition: entry, example: '' }))
+            });
+        }
+    }
+
+    // From Longman Business Dictionary (.bussdictEntry.Entry)
+    const busDict = doc.querySelector('.bussdictEntry');
+    if (busDict) {
+        const busSenses = busDict.querySelectorAll('.Sense');
+        busSenses.forEach(sense => {
+            const category = sense.querySelector('.FIELD')?.textContent?.trim() || '';
+            const definition = sense.querySelector('.DEF')?.textContent?.trim() || '';
+            const examples = [];
+            sense.querySelectorAll('.EXAMPLE').forEach(ex => {
+                const t = ex.textContent?.trim().replace(/^•\s*/, '');
+                if (t) examples.push(t);
+            });
             if (definition) {
-                const label = category ? `Business: ${category}` : 'Business';
+                const label = category ? `Business (${category})` : 'Business Dictionary';
                 meanings.push({ partOfSpeech: label, definitions: [{ definition, example: examples.join(' | ') }] });
             }
         });
     }
 
-    // Related Topics
+    // Related Topics (.topics_container > a.topic)
     const relatedTopics = [];
-    doc.querySelectorAll('.topics_container .topic, .relatedtopics a').forEach(el => {
+    doc.querySelectorAll('.topics_container .topic, .related_topics a.topic').forEach(el => {
         const t = el.textContent?.trim();
         if (t) relatedTopics.push(t);
     });
 
-    // Phrases/Collocations
+    // Collocations (.ColloExa > .COLLO and .ColloEnt)
     const phrases = [];
-    doc.querySelectorAll('.ColloEnt, .PHRASEOL .PHRASE, .COLLOINEXA .COLLO').forEach(el => {
+    doc.querySelectorAll('.COLLO, .ColloEnt, .PHRASEOL .PHRASE').forEach(el => {
         const phrase = el.textContent?.trim();
-        if (phrase) phrases.push(phrase);
+        if (phrase && !phrases.includes(phrase)) phrases.push(phrase);
     });
 
-    // Thesaurus/Synonyms
+    // Synonyms from thesaurus entries
     const synonyms = [];
     const antonyms = [];
-    doc.querySelectorAll('.Thesaurus a, .SYN .synt, .THESEntry .entryhead').forEach(el => {
-        synonyms.push(el.textContent?.trim());
-    });
-    doc.querySelectorAll('.OPP .synt').forEach(el => {
+    if (thesBox) {
+        thesBox.querySelectorAll('.EXP, .display').forEach(el => {
+            const t = el.textContent?.trim();
+            if (t && t.toLowerCase() !== word.toLowerCase()) synonyms.push(t);
+        });
+    }
+    doc.querySelectorAll('.OPP .synt, .OPP a').forEach(el => {
         antonyms.push(el.textContent?.trim());
     });
 
