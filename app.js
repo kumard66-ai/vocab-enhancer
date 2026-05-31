@@ -291,13 +291,16 @@ async function scrapeFromSource(source, word) {
     const proxies = [
         (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
         (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+        (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
     ];
 
     let html = null;
     for (const proxyFn of proxies) {
         try {
-            const res = await fetch(proxyFn(url), { signal: AbortSignal.timeout(8000) });
-            if (res.ok) { html = await res.text(); break; }
+            const res = await fetch(proxyFn(url), { signal: AbortSignal.timeout(12000) });
+            if (!res.ok) continue;
+            const text = await res.text();
+            if (text.length > 500) { html = text; break; }
         } catch (e) { continue; }
     }
 
@@ -318,7 +321,7 @@ async function scrapeFromSource(source, word) {
 }
 
 function parseCambridge(doc, word) {
-    const entry = doc.querySelector('.entry-body__el') || doc.querySelector('.pr.dictionary');
+    const entry = doc.querySelector('.entry-body__el') || doc.querySelector('.pr.dictionary') || doc.querySelector('.di-body');
     if (!entry) throw new Error('No entry found');
 
     const phonetic = doc.querySelector('.ipa')?.textContent || '';
@@ -326,11 +329,15 @@ function parseCambridge(doc, word) {
     const audio = audioSrc ? (audioSrc.startsWith('http') ? audioSrc : 'https://dictionary.cambridge.org' + audioSrc) : '';
 
     const meanings = [];
-    const blocks = entry.querySelectorAll('.def-block');
+    // Try .def-block first, fall back to .ddef_d (newer Cambridge layout)
+    let blocks = doc.querySelectorAll('.def-block, .ddef_block');
+    if (blocks.length === 0) blocks = doc.querySelectorAll('.sense-body [class*="def"]');
+
     blocks.forEach(block => {
-        const pos = block.closest('.entry-body__el')?.querySelector('.pos')?.textContent || '';
-        const definition = block.querySelector('.def')?.textContent?.trim() || '';
-        const example = block.querySelector('.eg')?.textContent?.trim() || '';
+        const pos = block.closest('.entry-body__el')?.querySelector('.pos, .dpos')?.textContent ||
+                    block.closest('.pr')?.querySelector('.pos, .dpos')?.textContent || '';
+        const definition = (block.querySelector('.def, .ddef_d')?.textContent?.trim() || '').replace(/:\s*$/, '');
+        const example = block.querySelector('.eg, .deg')?.textContent?.trim() || '';
         if (definition) {
             meanings.push({ partOfSpeech: pos, definitions: [{ definition, example }] });
         }
@@ -338,7 +345,7 @@ function parseCambridge(doc, word) {
 
     // Phrases/Idioms
     const phrases = [];
-    doc.querySelectorAll('.phrase-title, .idiom-title, .dphrase-title').forEach(el => {
+    doc.querySelectorAll('.phrase-title, .idiom-title, .dphrase-title, .phrase-di').forEach(el => {
         const phrase = el.textContent?.trim();
         if (phrase) phrases.push(phrase);
     });
@@ -346,10 +353,10 @@ function parseCambridge(doc, word) {
     // Synonyms/Antonyms
     const synonyms = [];
     const antonyms = [];
-    doc.querySelectorAll('.synonyms .item, .thes .item').forEach(el => {
+    doc.querySelectorAll('.synonyms .item, .thes .item, .dsynonyms a').forEach(el => {
         synonyms.push(el.textContent?.trim());
     });
-    doc.querySelectorAll('.opposites .item').forEach(el => {
+    doc.querySelectorAll('.opposites .item, .dantonyms a').forEach(el => {
         antonyms.push(el.textContent?.trim());
     });
 
@@ -1742,7 +1749,7 @@ async function loadReaderUrl() {
 }
 
 async function fetchUrlContent(url) {
-    // Try multiple CORS proxies
+    // Try multiple CORS proxies with longer timeout for full page loads
     const proxies = [
         (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
         (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -1752,10 +1759,15 @@ async function fetchUrlContent(url) {
     for (const proxyFn of proxies) {
         try {
             const proxyUrl = proxyFn(url);
-            const response = await fetch(proxyUrl, { signal: AbortSignal.timeout(10000) });
+            const response = await fetch(proxyUrl, { signal: AbortSignal.timeout(15000) });
             if (!response.ok) continue;
 
+            const contentType = response.headers.get('content-type') || '';
+            if (contentType.includes('application/pdf') || contentType.includes('image/')) continue;
+
             const rawHtml = await response.text();
+            if (rawHtml.length < 100) continue;
+
             const cleanHtml = extractReadableContent(rawHtml, url);
             if (cleanHtml) return cleanHtml;
         } catch (e) {
@@ -1793,33 +1805,48 @@ function extractReadableContent(rawHtml, sourceUrl) {
     const title = doc.querySelector('title')?.textContent || doc.querySelector('h1')?.textContent || '';
     if (title) html += `<h1>${escapeHtml(title)}</h1>`;
 
-    // Get all meaningful text nodes preserving structure
-    const allowedTags = new Set(['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'BLOCKQUOTE', 'PRE', 'CODE', 'FIGCAPTION', 'TD', 'TH', 'DT', 'DD']);
+    const leafTags = new Set(['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'BLOCKQUOTE', 'PRE', 'CODE', 'FIGCAPTION', 'TD', 'TH', 'DT', 'DD', 'CAPTION', 'SUMMARY', 'LABEL']);
+    const containerTags = new Set(['DIV', 'SECTION', 'ARTICLE', 'SPAN', 'MAIN', 'FIGURE', 'DETAILS', 'HGROUP', 'ADDRESS', 'FOOTER', 'HEADER', 'NAV', 'ASIDE', 'FORM', 'FIELDSET', 'DIALOG', 'TEMPLATE', 'SLOT']);
 
     function walkNodes(el) {
         let result = '';
         for (const child of el.children) {
             const tag = child.tagName;
             const text = child.textContent.trim();
-            if (!text || text.length < 3) continue;
+            if (!text) continue;
 
             if (tag === 'IMG') {
                 const alt = child.getAttribute('alt');
                 if (alt) result += `<p><em>[Image: ${escapeHtml(alt)}]</em></p>`;
-            } else if (allowedTags.has(tag)) {
-                const innerText = child.textContent.trim();
-                if (innerText.length > 5) {
-                    result += `<${tag.toLowerCase()}>${innerText}</${tag.toLowerCase()}>`;
-                }
+            } else if (leafTags.has(tag)) {
+                result += `<${tag.toLowerCase()}>${text}</${tag.toLowerCase()}>`;
             } else if (tag === 'UL' || tag === 'OL') {
                 result += `<${tag.toLowerCase()}>`;
                 child.querySelectorAll('li').forEach(li => {
                     const liText = li.textContent.trim();
-                    if (liText.length > 3) result += `<li>${liText}</li>`;
+                    if (liText) result += `<li>${liText}</li>`;
                 });
                 result += `</${tag.toLowerCase()}>`;
-            } else if (tag === 'DIV' || tag === 'SECTION' || tag === 'ARTICLE' || tag === 'SPAN') {
+            } else if (tag === 'TABLE') {
+                result += '<table>';
+                child.querySelectorAll('tr').forEach(tr => {
+                    result += '<tr>';
+                    tr.querySelectorAll('td, th').forEach(cell => {
+                        const cellTag = cell.tagName.toLowerCase();
+                        result += `<${cellTag}>${cell.textContent.trim()}</${cellTag}>`;
+                    });
+                    result += '</tr>';
+                });
+                result += '</table>';
+            } else if (containerTags.has(tag)) {
                 result += walkNodes(child);
+            } else {
+                // For any unknown wrapper element, recurse into it
+                if (child.children.length > 0) {
+                    result += walkNodes(child);
+                } else if (text.length > 1) {
+                    result += `<p>${text}</p>`;
+                }
             }
         }
         return result;
@@ -1829,7 +1856,7 @@ function extractReadableContent(rawHtml, sourceUrl) {
 
     // Check if we got meaningful content
     const textOnly = html.replace(/<[^>]*>/g, '').trim();
-    if (textOnly.length < 100) return null;
+    if (textOnly.length < 50) return null;
 
     return html;
 }
