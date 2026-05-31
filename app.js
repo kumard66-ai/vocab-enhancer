@@ -337,9 +337,13 @@ function parseCambridge(doc, word) {
         const pos = block.closest('.entry-body__el')?.querySelector('.pos, .dpos')?.textContent ||
                     block.closest('.pr')?.querySelector('.pos, .dpos')?.textContent || '';
         const definition = (block.querySelector('.def, .ddef_d')?.textContent?.trim() || '').replace(/:\s*$/, '');
-        const example = block.querySelector('.eg, .deg')?.textContent?.trim() || '';
+        const examples = [];
+        block.querySelectorAll('.eg, .deg, .examp').forEach(ex => {
+            const t = ex.textContent?.trim();
+            if (t) examples.push(t);
+        });
         if (definition) {
-            meanings.push({ partOfSpeech: pos, definitions: [{ definition, example }] });
+            meanings.push({ partOfSpeech: pos, definitions: [{ definition, example: examples.join(' | ') }] });
         }
     });
 
@@ -373,9 +377,13 @@ function parseOxford(doc, word) {
     senses.forEach(sense => {
         const pos = sense.closest('.entry')?.querySelector('.pos')?.textContent || '';
         const definition = sense.querySelector('.def')?.textContent?.trim() || '';
-        const example = sense.querySelector('.x')?.textContent?.trim() || '';
+        const examples = [];
+        sense.querySelectorAll('.x, .unx, .EXAMPLE').forEach(ex => {
+            const t = ex.textContent?.trim();
+            if (t) examples.push(t);
+        });
         if (definition) {
-            meanings.push({ partOfSpeech: pos, definitions: [{ definition, example }] });
+            meanings.push({ partOfSpeech: pos, definitions: [{ definition, example: examples.join(' | ') }] });
         }
     });
 
@@ -410,9 +418,13 @@ function parseLongman(doc, word) {
         const pos = sense.closest('.Entry')?.querySelector('.POS')?.textContent?.trim() || '';
         const defEl = sense.querySelector('.DEF');
         const definition = defEl?.textContent?.trim() || '';
-        const example = sense.querySelector('.EXAMPLE')?.textContent?.trim() || '';
+        const examples = [];
+        sense.querySelectorAll('.EXAMPLE').forEach(ex => {
+            const t = ex.textContent?.trim();
+            if (t) examples.push(t);
+        });
         if (definition) {
-            meanings.push({ partOfSpeech: pos, definitions: [{ definition, example }] });
+            meanings.push({ partOfSpeech: pos, definitions: [{ definition, example: examples.join(' | ') }] });
         }
     });
 
@@ -448,9 +460,16 @@ function parseMerriam(doc, word) {
         const defs = entry.querySelectorAll('.dtText');
         defs.forEach(def => {
             const definition = def.textContent?.replace(/^:\s*/, '').trim() || '';
-            const example = def.parentElement?.querySelector('.ex-sent')?.textContent?.trim() || '';
+            const examples = [];
+            const parent = def.parentElement;
+            if (parent) {
+                parent.querySelectorAll('.ex-sent, .t_sc, .sub-content-thread .ex-sent').forEach(ex => {
+                    const t = ex.textContent?.trim();
+                    if (t) examples.push(t);
+                });
+            }
             if (definition) {
-                meanings.push({ partOfSpeech: pos, definitions: [{ definition, example }] });
+                meanings.push({ partOfSpeech: pos, definitions: [{ definition, example: examples.join(' | ') }] });
             }
         });
     });
@@ -482,8 +501,11 @@ function parseVocabulary(doc, word) {
     const definition = shortDef || longDef;
     if (!definition) throw new Error('No meanings');
 
-    const instances = doc.querySelectorAll('.example');
-    const example = instances[0]?.textContent?.trim() || '';
+    const examples = [];
+    doc.querySelectorAll('.example').forEach(ex => {
+        const t = ex.textContent?.trim();
+        if (t) examples.push(t);
+    });
 
     // Vocabulary.com has related words
     const synonyms = [];
@@ -491,7 +513,11 @@ function parseVocabulary(doc, word) {
         synonyms.push(el.textContent?.trim());
     });
 
-    const meanings = [{ partOfSpeech: '', definitions: [{ definition, example }] }];
+    const definitions = [{ definition, example: examples.join(' | ') }];
+    if (shortDef && longDef) {
+        definitions.push({ definition: longDef, example: '' });
+    }
+    const meanings = [{ partOfSpeech: '', definitions }];
     return buildStandardResult(word, '', '', meanings, synonyms, [], []);
 }
 
@@ -533,9 +559,9 @@ function displayWordResult(data) {
     data.meanings.forEach(meaning => {
         html += `<div class="meaning-group">
             <h3>${meaning.partOfSpeech}</h3>`;
-        meaning.definitions.slice(0, 3).forEach(def => {
+        meaning.definitions.forEach((def, i) => {
             html += `<div class="definition-item">
-                <p>${def.definition}</p>
+                <p><strong>${i + 1}.</strong> ${def.definition}</p>
                 ${def.example ? `<p class="example">"${def.example}"</p>` : ''}
             </div>`;
         });
