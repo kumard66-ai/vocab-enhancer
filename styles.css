@@ -1744,3 +1744,76 @@ body {
         font-size: 1.75rem;
     }
 }
+
+/* ===== Autocomplete ===== */
+.autocomplete-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    box-shadow: var(--shadow-lg);
+    z-index: 100;
+    display: none;
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.autocomplete-list.visible {
+    display: block;
+}
+
+.autocomplete-item {
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--text);
+    transition: var(--transition);
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.active {
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+/* ===== Sort Indicators ===== */
+#historyTable th[data-sort] {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+
+#historyTable th[data-sort]:hover {
+    color: var(--primary);
+}
+
+#historyTable th[data-sort] .fa-sort {
+    font-size: 0.7rem;
+    opacity: 0.4;
+    margin-left: 0.25rem;
+}
+
+#historyTable th.sort-asc .fa-sort::before {
+    content: "\f0de";
+    opacity: 1;
+}
+
+#historyTable th.sort-desc .fa-sort::before {
+    content: "\f0dd";
+    opacity: 1;
+}
+
+#historyTable th.sort-asc,
+#historyTable th.sort-desc {
+    color: var(--primary);
+}
+
+#historyTable th.sort-asc .fa-sort,
+#historyTable th.sort-desc .fa-sort {
+    opacity: 1;
+    color: var(--primary);
+}

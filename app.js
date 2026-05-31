@@ -206,6 +206,69 @@ function initSearch() {
     document.getElementById('saveWordBtn').addEventListener('click', saveCurrentWord);
     document.getElementById('pronounceBtn').addEventListener('click', pronounceWord);
     initCustomSources();
+    initAutocomplete(input);
+}
+
+function initAutocomplete(input) {
+    let acBox = document.createElement('div');
+    acBox.className = 'autocomplete-list';
+    input.parentElement.style.position = 'relative';
+    input.parentElement.appendChild(acBox);
+
+    let activeIdx = -1;
+
+    input.addEventListener('input', () => {
+        const val = input.value.trim().toLowerCase();
+        acBox.innerHTML = '';
+        activeIdx = -1;
+        if (!val || val.length < 1) { acBox.classList.remove('visible'); return; }
+
+        const matches = STATE.words
+            .filter(w => w.word.toLowerCase().startsWith(val))
+            .slice(0, 8)
+            .map(w => w.word);
+
+        if (matches.length === 0) { acBox.classList.remove('visible'); return; }
+
+        acBox.classList.add('visible');
+        matches.forEach((word, i) => {
+            const item = document.createElement('div');
+            item.className = 'autocomplete-item';
+            item.textContent = word;
+            item.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                input.value = word;
+                acBox.classList.remove('visible');
+                searchWord(word);
+            });
+            acBox.appendChild(item);
+        });
+    });
+
+    input.addEventListener('keydown', (e) => {
+        const items = acBox.querySelectorAll('.autocomplete-item');
+        if (!items.length) return;
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            activeIdx = Math.min(activeIdx + 1, items.length - 1);
+            items.forEach((it, i) => it.classList.toggle('active', i === activeIdx));
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            activeIdx = Math.max(activeIdx - 1, 0);
+            items.forEach((it, i) => it.classList.toggle('active', i === activeIdx));
+        } else if (e.key === 'Enter' && activeIdx >= 0) {
+            e.preventDefault();
+            input.value = items[activeIdx].textContent;
+            acBox.classList.remove('visible');
+            searchWord(input.value.trim());
+        } else if (e.key === 'Escape') {
+            acBox.classList.remove('visible');
+        }
+    });
+
+    input.addEventListener('blur', () => {
+        setTimeout(() => acBox.classList.remove('visible'), 150);
+    });
 }
 
 async function searchWord(word) {
@@ -1042,6 +1105,28 @@ function initHistory() {
             showToast('History cleared', 'success');
         }
     });
+
+    // Default sort: latest first
+    STATE.historySortCol = 'dateAdded';
+    STATE.historySortDir = 'desc';
+
+    // Column sorting
+    document.querySelectorAll('#historyTable th[data-sort]').forEach(th => {
+        th.style.cursor = 'pointer';
+        th.addEventListener('click', () => {
+            const col = th.dataset.sort;
+            if (STATE.historySortCol === col) {
+                STATE.historySortDir = STATE.historySortDir === 'asc' ? 'desc' : 'asc';
+            } else {
+                STATE.historySortCol = col;
+                STATE.historySortDir = 'asc';
+            }
+            renderHistory();
+        });
+    });
+
+    // Also add autocomplete to history search
+    initAutocomplete(document.getElementById('historySearch'));
 }
 
 function renderHistory() {
@@ -1055,6 +1140,31 @@ function renderHistory() {
         const matchSearch = w.word.toLowerCase().includes(search) || w.meaning.toLowerCase().includes(search);
         const matchFilter = filter === 'all' || w.partOfSpeech === filter;
         return matchSearch && matchFilter;
+    });
+
+    // Sort
+    const col = STATE.historySortCol || 'dateAdded';
+    const dir = STATE.historySortDir || 'desc';
+    filtered.sort((a, b) => {
+        let va = a[col] || '', vb = b[col] || '';
+        if (col === 'dateAdded') {
+            va = new Date(va).getTime() || 0;
+            vb = new Date(vb).getTime() || 0;
+        } else if (typeof va === 'string') {
+            va = va.toLowerCase();
+            vb = vb.toLowerCase();
+        }
+        if (va < vb) return dir === 'asc' ? -1 : 1;
+        if (va > vb) return dir === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    // Update sort indicators
+    document.querySelectorAll('#historyTable th[data-sort]').forEach(th => {
+        th.classList.remove('sort-asc', 'sort-desc');
+        if (th.dataset.sort === col) {
+            th.classList.add(dir === 'asc' ? 'sort-asc' : 'sort-desc');
+        }
     });
 
     if (filtered.length === 0) {
