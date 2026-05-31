@@ -79,7 +79,10 @@
                 </div>
                 <div class="source-selector">
                     <label>Source:</label>
-                    <select id="sourceSelect">
+                    <button id="removePdfBtn" class="btn btn-outline btn-sm hidden" title="Remove this PDF dictionary" style="color:var(--danger)">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    <select id="sourceSelect" style="max-width:220px">
                         <option value="free">Free Dictionary API</option>
                         <option value="vocabulary">Vocabulary.com</option>
                         <option value="cambridge">Cambridge Dictionary</option>
@@ -91,9 +94,6 @@
                     </select>
                     <button id="openSourceBtn" class="btn btn-outline btn-sm" title="Open in source website">
                         <i class="fas fa-external-link-alt"></i>
-                    </button>
-                    <button id="removePdfBtn" class="btn btn-outline btn-sm hidden" title="Remove this PDF dictionary" style="color:var(--danger)">
-                        <i class="fas fa-trash"></i>
                     </button>
                     <input type="file" id="pdfDictInput" accept=".pdf" hidden>
                 </div>
