@@ -413,13 +413,13 @@ function parseLongman(doc, word) {
     const audioSrc = doc.querySelector('[data-src-mp3]')?.getAttribute('data-src-mp3') || '';
 
     const meanings = [];
-    const senses = doc.querySelectorAll('.Sense');
+    const senses = doc.querySelectorAll('.Entry .Sense');
     senses.forEach(sense => {
         const pos = sense.closest('.Entry')?.querySelector('.POS')?.textContent?.trim() || '';
         const defEl = sense.querySelector('.DEF');
         const definition = defEl?.textContent?.trim() || '';
         const examples = [];
-        sense.querySelectorAll('.EXAMPLE').forEach(ex => {
+        sense.querySelectorAll('.EXAMPLE, .COLLOINEXA').forEach(ex => {
             const t = ex.textContent?.trim();
             if (t) examples.push(t);
         });
@@ -428,9 +428,51 @@ function parseLongman(doc, word) {
         }
     });
 
-    // Phrases/Collocations from Longman
+    // Examples from the Corpus
+    const corpusSection = doc.querySelector('.Corpus, .exaGroup');
+    if (corpusSection) {
+        const corpusExamples = [];
+        corpusSection.querySelectorAll('.EXAMPLE, p').forEach(ex => {
+            const t = ex.textContent?.trim();
+            if (t && t.length > 10) corpusExamples.push(t);
+        });
+        if (corpusExamples.length > 0) {
+            meanings.push({
+                partOfSpeech: 'Examples from Corpus',
+                definitions: [{ definition: corpusExamples.join(' | '), example: '' }]
+            });
+        }
+    }
+
+    // From Longman Business Dictionary
+    const busDict = doc.querySelector('.busdict');
+    if (busDict) {
+        const busSenses = busDict.querySelectorAll('.Sense');
+        busSenses.forEach(sense => {
+            const category = sense.querySelector('.SIGNPOST, .neutral')?.textContent?.trim() || '';
+            const definition = sense.querySelector('.DEF')?.textContent?.trim() || '';
+            const examples = [];
+            sense.querySelectorAll('.EXAMPLE').forEach(ex => {
+                const t = ex.textContent?.trim();
+                if (t) examples.push(t);
+            });
+            if (definition) {
+                const label = category ? `Business: ${category}` : 'Business';
+                meanings.push({ partOfSpeech: label, definitions: [{ definition, example: examples.join(' | ') }] });
+            }
+        });
+    }
+
+    // Related Topics
+    const relatedTopics = [];
+    doc.querySelectorAll('.topics_container .topic, .relatedtopics a').forEach(el => {
+        const t = el.textContent?.trim();
+        if (t) relatedTopics.push(t);
+    });
+
+    // Phrases/Collocations
     const phrases = [];
-    doc.querySelectorAll('.ColloEnt, .PHRASEOL .PHRASE').forEach(el => {
+    doc.querySelectorAll('.ColloEnt, .PHRASEOL .PHRASE, .COLLOINEXA .COLLO').forEach(el => {
         const phrase = el.textContent?.trim();
         if (phrase) phrases.push(phrase);
     });
@@ -438,7 +480,7 @@ function parseLongman(doc, word) {
     // Thesaurus/Synonyms
     const synonyms = [];
     const antonyms = [];
-    doc.querySelectorAll('.SYN .synt, .THESEntry .entryhead').forEach(el => {
+    doc.querySelectorAll('.Thesaurus a, .SYN .synt, .THESEntry .entryhead').forEach(el => {
         synonyms.push(el.textContent?.trim());
     });
     doc.querySelectorAll('.OPP .synt').forEach(el => {
@@ -446,7 +488,11 @@ function parseLongman(doc, word) {
     });
 
     if (meanings.length === 0) throw new Error('No meanings');
-    return buildStandardResult(word, phonetic, audioSrc, meanings, synonyms, antonyms, phrases);
+    const result = buildStandardResult(word, phonetic, audioSrc, meanings, synonyms, antonyms, phrases);
+    if (relatedTopics.length > 0) {
+        result._relatedTopics = relatedTopics;
+    }
+    return result;
 }
 
 function parseMerriam(doc, word) {
@@ -636,12 +682,25 @@ function displayWordResult(data) {
     // Phrases/Collocations
     const phrasesSection = document.getElementById('resultPhrases');
     const phrasesList = document.getElementById('phrasesList');
-    const allPhrases = (data._phrases || []).slice(0, 10);
+    const allPhrases = (data._phrases || []).slice(0, 20);
     if (allPhrases.length) {
         phrasesSection.classList.remove('hidden');
         phrasesList.innerHTML = allPhrases.map(p => `<span class="tag phrase-tag">${p}</span>`).join('');
     } else {
         phrasesSection.classList.add('hidden');
+    }
+
+    // Related Topics (from Longman)
+    const topicsSection = document.getElementById('resultTopics');
+    if (topicsSection) {
+        const topicsList = document.getElementById('topicsList');
+        const topics = data._relatedTopics || [];
+        if (topics.length) {
+            topicsSection.classList.remove('hidden');
+            topicsList.innerHTML = topics.map(t => `<span class="tag topic-tag">${t}</span>`).join('');
+        } else {
+            topicsSection.classList.add('hidden');
+        }
     }
 
     // Store current word data for saving

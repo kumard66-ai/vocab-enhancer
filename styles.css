@@ -637,6 +637,22 @@ body {
     color: #fef3c7 !important;
 }
 
+.topic-tag {
+    background: #dbeafe !important;
+    color: #1e40af !important;
+}
+
+[data-theme="dark"] .topic-tag {
+    background: #1e3a5f !important;
+    color: #93c5fd !important;
+}
+
+.topics-section {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+}
+
 .td-tags {
     word-wrap: break-word;
     overflow-wrap: break-word;
