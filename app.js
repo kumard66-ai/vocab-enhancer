@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initFlashcards();
     initQuiz();
     initStats();
+    initPdfDictionary();
     loadWordOfTheDay();
     updateStreak();
 });
@@ -206,6 +207,11 @@ function initSearch() {
     // Re-search automatically when source changes
     sourceSelect.addEventListener('change', () => {
         if (sourceSelect.value === 'custom') return;
+        if (sourceSelect.value === 'uploadpdf') {
+            document.getElementById('pdfDictInput').click();
+            sourceSelect.value = 'free';
+            return;
+        }
         const word = input.value.trim();
         if (word) searchWord(word);
     });
@@ -319,8 +325,15 @@ async function searchWord(word) {
     let data = null;
     let usedSource = source;
 
-    // Try selected source first (scrape), then fall back to Free Dictionary API
-    if (source !== 'free') {
+    // Try selected source first (scrape/PDF), then fall back to Free Dictionary API
+    if (source.startsWith('pdf_')) {
+        try {
+            data = await searchPdfDict(source, word);
+            data._source = source;
+        } catch (e) {
+            // PDF search failed, will try API fallback
+        }
+    } else if (source !== 'free') {
         try {
             data = await scrapeFromSource(source, word);
             data._source = source;
@@ -1061,6 +1074,11 @@ function getSourceLabel(source) {
         longman: 'Longman',
     };
     if (labels[source]) return labels[source];
+    if (source.startsWith('pdf_')) {
+        const dicts = JSON.parse(localStorage.getItem('vocabPdfDicts') || '[]');
+        const found = dicts.find(d => d.id === source);
+        return found ? `📖 ${found.name}` : 'PDF Dictionary';
+    }
     const custom = JSON.parse(localStorage.getItem('vocabCustomSources') || '[]');
     const found = custom.find(s => s.id === source);
     return found ? found.name : source;
@@ -1974,6 +1992,143 @@ function updateStreak() {
     }
     STATE.streak.lastDate = today;
     localStorage.setItem('vocabStreak', JSON.stringify(STATE.streak));
+}
+
+// --- PDF Dictionary ---
+function initPdfDictionary() {
+    const fileInput = document.getElementById('pdfDictInput');
+    fileInput.addEventListener('change', async () => {
+        if (fileInput.files.length) {
+            await indexPdfDictionary(fileInput.files[0]);
+            fileInput.value = '';
+        }
+    });
+    loadPdfDictSources();
+}
+
+function loadPdfDictSources() {
+    const dicts = JSON.parse(localStorage.getItem('vocabPdfDicts') || '[]');
+    const select = document.getElementById('sourceSelect');
+    dicts.forEach(d => {
+        if (!select.querySelector(`[value="${d.id}"]`)) {
+            const opt = document.createElement('option');
+            opt.value = d.id;
+            opt.textContent = `📖 ${d.name}`;
+            select.insertBefore(opt, select.querySelector('[value="custom"]'));
+        }
+    });
+}
+
+async function indexPdfDictionary(file) {
+    showToast('Indexing PDF dictionary... This may take a moment.', 'success');
+
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const totalPages = pdf.numPages;
+        const entries = {};
+        const name = file.name.replace('.pdf', '');
+        const id = 'pdf_' + name.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Date.now();
+
+        for (let i = 1; i <= totalPages; i++) {
+            if (i % 20 === 0) showToast(`Indexing page ${i}/${totalPages}...`, 'success');
+            const page = await pdf.getPage(i);
+            const content = await page.getTextContent();
+            const pageText = content.items.map(item => item.str).join(' ');
+
+            // Extract words and their surrounding context as definitions
+            const words = pageText.match(/\b[a-zA-Z]{3,}\b/g) || [];
+            words.forEach(word => {
+                const key = word.toLowerCase();
+                if (!entries[key]) entries[key] = { word: key, contexts: [] };
+                if (entries[key].contexts.length < 5) {
+                    // Get context around the word (surrounding text)
+                    const idx = pageText.toLowerCase().indexOf(key);
+                    if (idx > -1) {
+                        const start = Math.max(0, idx - 80);
+                        const end = Math.min(pageText.length, idx + key.length + 150);
+                        const context = pageText.slice(start, end).trim();
+                        if (context.length > 20 && !entries[key].contexts.includes(context)) {
+                            entries[key].contexts.push(context);
+                        }
+                    }
+                }
+            });
+        }
+
+        // Store in IndexedDB for large data
+        await savePdfDictToIDB(id, entries);
+
+        // Save metadata in localStorage
+        const dicts = JSON.parse(localStorage.getItem('vocabPdfDicts') || '[]');
+        dicts.push({ id, name, pages: totalPages, wordCount: Object.keys(entries).length, dateAdded: new Date().toISOString() });
+        localStorage.setItem('vocabPdfDicts', JSON.stringify(dicts));
+
+        // Add to dropdown
+        const select = document.getElementById('sourceSelect');
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = `📖 ${name}`;
+        select.insertBefore(opt, select.querySelector('[value="custom"]'));
+        select.value = id;
+
+        showToast(`"${name}" indexed! ${Object.keys(entries).length} words from ${totalPages} pages.`, 'success');
+    } catch (err) {
+        showToast('Error indexing PDF: ' + err.message, 'error');
+    }
+}
+
+function openPdfDictDB() {
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.open('VocabVaultPdfDicts', 1);
+        req.onupgradeneeded = () => {
+            const db = req.result;
+            if (!db.objectStoreNames.contains('dicts')) {
+                db.createObjectStore('dicts');
+            }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+    });
+}
+
+async function savePdfDictToIDB(id, entries) {
+    const db = await openPdfDictDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction('dicts', 'readwrite');
+        tx.objectStore('dicts').put(entries, id);
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
+async function getPdfDictFromIDB(id) {
+    const db = await openPdfDictDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction('dicts', 'readonly');
+        const req = tx.objectStore('dicts').get(id);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+    });
+}
+
+async function searchPdfDict(source, word) {
+    const entries = await getPdfDictFromIDB(source);
+    if (!entries) throw new Error('PDF dictionary not found');
+
+    const key = word.toLowerCase();
+    const entry = entries[key];
+    if (!entry || !entry.contexts.length) throw new Error('Word not found in PDF dictionary');
+
+    const meanings = [{
+        partOfSpeech: 'PDF Dictionary',
+        definitions: entry.contexts.map(ctx => ({
+            definition: ctx,
+            example: ''
+        }))
+    }];
+
+    return buildStandardResult(word, '', '', meanings, [], [], []);
 }
 
 // --- Utilities ---
