@@ -112,6 +112,20 @@ body {
     color: var(--primary);
 }
 
+.nav-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-left: 0.2rem;
+    opacity: 0.8;
+}
+
+.nav-badge.memory-badge {
+    font-size: 0.65rem;
+    padding: 0.1rem 0.35rem;
+    background: var(--bg-hover);
+    border-radius: var(--radius-full);
+}
+
 .nav-right {
     margin-left: auto;
     display: flex;
@@ -560,32 +574,6 @@ body {
 }
 
 /* ===== History Table ===== */
-.history-stats-bar {
-    display: flex;
-    gap: 1.5rem;
-    align-items: center;
-    margin-bottom: 1rem;
-    padding: 0.6rem 1.2rem;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-}
-
-.history-stat {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-}
-
-.history-stat i {
-    margin-right: 0.3rem;
-    color: var(--primary);
-}
-
-.history-stat strong {
-    color: var(--text);
-}
-
 .history-toolbar {
     display: flex;
     justify-content: space-between;

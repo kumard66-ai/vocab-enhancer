@@ -1,5 +1,10 @@
 // ===== VocabVault - Main Application =====
 
+// --- PDF.js Worker Setup ---
+if (typeof pdfjsLib !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
 // --- State Management ---
 const STATE = {
     words: JSON.parse(localStorage.getItem('vocabWords') || '[]'),
@@ -25,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initPdfDictionary();
     loadWordOfTheDay();
     updateStreak();
+    updateHistoryStats();
 });
 
 // --- Theme ---
@@ -1247,14 +1253,17 @@ function saveCurrentWord() {
 // --- History ---
 function updateHistoryStats() {
     const count = STATE.words.length;
-    document.getElementById('historyWordCount').textContent = count;
+    const navCount = document.getElementById('navHistoryCount');
+    if (navCount) navCount.textContent = count > 0 ? `(${count})` : '';
+
     const dataStr = localStorage.getItem('vocabWords') || '[]';
     const bytes = new Blob([dataStr]).size;
     let sizeStr;
     if (bytes < 1024) sizeStr = bytes + ' B';
     else if (bytes < 1024 * 1024) sizeStr = (bytes / 1024).toFixed(1) + ' KB';
     else sizeStr = (bytes / (1024 * 1024)).toFixed(2) + ' MB';
-    document.getElementById('historyMemoryUsed').textContent = sizeStr;
+    const navMem = document.getElementById('navMemoryBadge');
+    if (navMem) navMem.textContent = sizeStr;
 }
 
 function initHistory() {
@@ -2642,6 +2651,8 @@ async function renderPdfCanvas(file, container) {
         const pageDiv = document.createElement('div');
         pageDiv.className = 'pdf-page-wrapper';
         pageDiv.dataset.pageNum = i;
+        pageDiv.style.width = viewport.width + 'px';
+        pageDiv.style.height = viewport.height + 'px';
 
         const canvas = document.createElement('canvas');
         canvas.width = viewport.width;
@@ -2658,11 +2669,14 @@ async function renderPdfCanvas(file, container) {
         textContent.items.forEach(item => {
             const span = document.createElement('span');
             span.textContent = item.str;
-            const tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
-            span.style.left = tx[4] + 'px';
-            span.style.top = (viewport.height - tx[5]) + 'px';
-            span.style.fontSize = Math.abs(item.transform[0] * STATE.readerPdfScale) + 'px';
-            span.style.fontFamily = item.fontName || 'sans-serif';
+            const scale = STATE.readerPdfScale;
+            const fontHeight = Math.abs(item.transform[3]) * scale;
+            const left = item.transform[4] * scale;
+            const top = viewport.height - (item.transform[5] * scale) - fontHeight;
+            span.style.left = left + 'px';
+            span.style.top = top + 'px';
+            span.style.fontSize = fontHeight + 'px';
+            span.style.fontFamily = 'sans-serif';
             textLayerDiv.appendChild(span);
         });
 

@@ -21,7 +21,7 @@
                 <i class="fas fa-search"></i> Lookup
             </a>
             <a href="#history" class="nav-link" data-section="history">
-                <i class="fas fa-table"></i> History
+                <i class="fas fa-table"></i> History<span id="navHistoryCount" class="nav-badge"></span>
             </a>
             <a href="#reader" class="nav-link" data-section="reader">
                 <i class="fas fa-book-reader"></i> Reader
@@ -36,7 +36,7 @@
                 <i class="fas fa-brain"></i> Quiz
             </a>
             <a href="#stats" class="nav-link" data-section="stats">
-                <i class="fas fa-chart-bar"></i> Stats
+                <i class="fas fa-chart-bar"></i> Stats<span id="navMemoryBadge" class="nav-badge memory-badge"></span>
             </a>
         </div>
         <div class="nav-right">
@@ -146,11 +146,6 @@
             <div class="section-header">
                 <h1>Word History</h1>
                 <p>All your saved words in one place</p>
-            </div>
-
-            <div class="history-stats-bar">
-                <span class="history-stat"><i class="fas fa-book"></i> Total Words: <strong id="historyWordCount">0</strong></span>
-                <span class="history-stat"><i class="fas fa-database"></i> Memory Used: <strong id="historyMemoryUsed">0 KB</strong></span>
             </div>
 
             <div class="history-toolbar">
