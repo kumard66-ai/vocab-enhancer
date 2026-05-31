@@ -1138,8 +1138,27 @@ function addCustomSource() {
 function saveCurrentWord() {
     if (!STATE.currentWord) return;
     const existing = STATE.words.find(w => w.word.toLowerCase() === STATE.currentWord.word.toLowerCase());
+
     if (existing) {
-        showToast('Word already in history!', 'error');
+        // Merge new data into existing entry
+        const cur = STATE.currentWord;
+        if (cur.meaning && cur.meaning !== existing.meaning) {
+            existing.meaning = existing.meaning + ' | ' + cur.meaning;
+        }
+        if (cur.example && !existing.example?.includes(cur.example)) {
+            existing.example = (existing.example ? existing.example + ' | ' : '') + cur.example;
+        }
+        const mergeUnique = (arr1, arr2) => [...new Set([...(arr1 || []), ...(arr2 || [])])];
+        existing.synonyms = mergeUnique(existing.synonyms, cur.synonyms);
+        existing.antonyms = mergeUnique(existing.antonyms, cur.antonyms);
+        existing.phrases = mergeUnique(existing.phrases, cur.phrases);
+        if (cur.phonetic && !existing.phonetic) existing.phonetic = cur.phonetic;
+        if (cur.audio && !existing.audio) existing.audio = cur.audio;
+        if (cur.allMeanings) {
+            existing.allMeanings = mergeUnique(existing.allMeanings, cur.allMeanings);
+        }
+        saveWords();
+        showToast(`"${existing.word}" enriched with new data!`, 'success');
         return;
     }
 
@@ -1266,6 +1285,9 @@ function renderHistory() {
                 <button class="btn-icon" onclick="lookupHistoryWord('${w.word}')" title="Lookup">
                     <i class="fas fa-search"></i>
                 </button>
+                <button class="btn-icon" onclick="openEditModal(${w.id})" title="Edit" style="color:var(--primary)">
+                    <i class="fas fa-edit"></i>
+                </button>
                 <button class="btn-icon" onclick="deleteWord(${w.id})" title="Delete" style="color:var(--danger)">
                     <i class="fas fa-trash"></i>
                 </button>
@@ -1297,6 +1319,38 @@ function deleteWord(id) {
     saveWords();
     renderHistory();
     showToast('Word removed', 'success');
+}
+
+function openEditModal(id) {
+    const word = STATE.words.find(w => w.id === id);
+    if (!word) return;
+    STATE.editingWordId = id;
+    document.getElementById('editWordTitle').textContent = word.word;
+    document.getElementById('editMeaning').value = word.meaning || '';
+    document.getElementById('editExample').value = word.example || '';
+    document.getElementById('editPhrases').value = (word.phrases || []).join(', ');
+    document.getElementById('editSynonyms').value = (word.synonyms || []).join(', ');
+    document.getElementById('editAntonyms').value = (word.antonyms || []).join(', ');
+    document.getElementById('editWordModal').style.display = 'flex';
+}
+
+function closeEditModal() {
+    document.getElementById('editWordModal').style.display = 'none';
+    STATE.editingWordId = null;
+}
+
+function saveEditWord() {
+    const word = STATE.words.find(w => w.id === STATE.editingWordId);
+    if (!word) return;
+    word.meaning = document.getElementById('editMeaning').value.trim();
+    word.example = document.getElementById('editExample').value.trim();
+    word.phrases = document.getElementById('editPhrases').value.split(',').map(s => s.trim()).filter(Boolean);
+    word.synonyms = document.getElementById('editSynonyms').value.split(',').map(s => s.trim()).filter(Boolean);
+    word.antonyms = document.getElementById('editAntonyms').value.split(',').map(s => s.trim()).filter(Boolean);
+    saveWords();
+    closeEditModal();
+    renderHistory();
+    showToast(`"${word.word}" updated!`, 'success');
 }
 
 function exportToExcel() {
