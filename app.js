@@ -205,22 +205,20 @@ function initSearch() {
     });
 
     // Re-search automatically when source changes
-    const removePdfBtn = document.getElementById('removePdfBtn');
     sourceSelect.addEventListener('change', () => {
-        if (sourceSelect.value === 'custom') { removePdfBtn.classList.add('hidden'); return; }
+        if (sourceSelect.value === 'custom') { updatePdfRemoveBtn(); return; }
         if (sourceSelect.value === 'uploadpdf') {
             document.getElementById('pdfDictInput').click();
             sourceSelect.value = 'free';
-            removePdfBtn.classList.add('hidden');
+            updatePdfRemoveBtn();
             return;
         }
-        // Show/hide remove button for PDF sources
-        removePdfBtn.classList.toggle('hidden', !sourceSelect.value.startsWith('pdf_'));
+        updatePdfRemoveBtn();
         const word = input.value.trim();
         if (word) searchWord(word);
     });
 
-    removePdfBtn.addEventListener('click', () => {
+    document.getElementById('removePdfBtn').addEventListener('click', () => {
         const id = sourceSelect.value;
         if (!id.startsWith('pdf_')) return;
         const dicts = JSON.parse(localStorage.getItem('vocabPdfDicts') || '[]');
@@ -2017,6 +2015,19 @@ function initPdfDictionary() {
         }
     });
     loadPdfDictSources();
+    updatePdfRemoveBtn();
+}
+
+function updatePdfRemoveBtn() {
+    const btn = document.getElementById('removePdfBtn');
+    const isPdf = document.getElementById('sourceSelect').value.startsWith('pdf_');
+    if (isPdf) {
+        btn.style.display = 'inline-flex';
+        btn.classList.remove('hidden');
+    } else {
+        btn.style.display = 'none';
+        btn.classList.add('hidden');
+    }
 }
 
 function loadPdfDictSources() {
@@ -2122,7 +2133,7 @@ async function indexPdfDictionary(file) {
         opt.textContent = `📖 ${name}`;
         select.insertBefore(opt, select.querySelector('[value="custom"]'));
         select.value = id;
-        document.getElementById('removePdfBtn').classList.remove('hidden');
+        updatePdfRemoveBtn();
 
         showToast(`"${name}" indexed! ${Object.keys(entries).length} entries from ${totalPages} pages.`, 'success');
     } catch (err) {
@@ -2182,7 +2193,7 @@ async function removePdfDictionary(id) {
     const opt = select.querySelector(`[value="${id}"]`);
     if (opt) opt.remove();
     select.value = 'free';
-    document.getElementById('removePdfBtn').classList.add('hidden');
+    updatePdfRemoveBtn();
 
     showToast('PDF dictionary removed', 'success');
 }
