@@ -1064,7 +1064,10 @@ function initCustomSources() {
         if (select.value === 'custom') {
             addCustomSource();
             select.value = 'free';
+            return;
         }
+        const word = document.getElementById('wordInput').value.trim();
+        if (word) searchWord(word);
     });
     // Load existing custom sources into dropdown
     const custom = JSON.parse(localStorage.getItem('vocabCustomSources') || '[]');
