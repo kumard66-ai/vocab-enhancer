@@ -2026,40 +2026,78 @@ async function indexPdfDictionary(file) {
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         const totalPages = pdf.numPages;
-        const entries = {};
         const name = file.name.replace('.pdf', '');
         const id = 'pdf_' + name.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Date.now();
 
+        // Extract full text page by page, preserving structure
+        const pages = [];
         for (let i = 1; i <= totalPages; i++) {
-            if (i % 20 === 0) showToast(`Indexing page ${i}/${totalPages}...`, 'success');
+            if (i % 20 === 0) showToast(`Reading page ${i}/${totalPages}...`, 'success');
             const page = await pdf.getPage(i);
             const content = await page.getTextContent();
-            const pageText = content.items.map(item => item.str).join(' ');
 
-            // Extract words and their surrounding context as definitions
-            const words = pageText.match(/\b[a-zA-Z]{3,}\b/g) || [];
-            words.forEach(word => {
-                const key = word.toLowerCase();
-                if (!entries[key]) entries[key] = { word: key, contexts: [] };
-                if (entries[key].contexts.length < 5) {
-                    // Get context around the word (surrounding text)
-                    const idx = pageText.toLowerCase().indexOf(key);
-                    if (idx > -1) {
-                        const start = Math.max(0, idx - 80);
-                        const end = Math.min(pageText.length, idx + key.length + 150);
-                        const context = pageText.slice(start, end).trim();
-                        if (context.length > 20 && !entries[key].contexts.includes(context)) {
-                            entries[key].contexts.push(context);
-                        }
-                    }
+            // Group text items by Y position (lines)
+            const lines = [];
+            let currentLine = '';
+            let lastY = null;
+            content.items.forEach(item => {
+                const y = Math.round(item.transform[5]);
+                if (lastY !== null && Math.abs(y - lastY) > 3) {
+                    if (currentLine.trim()) lines.push(currentLine.trim());
+                    currentLine = '';
                 }
+                currentLine += item.str;
+                lastY = y;
             });
+            if (currentLine.trim()) lines.push(currentLine.trim());
+            pages.push(lines);
         }
 
-        // Store in IndexedDB for large data
+        // Build dictionary entries: detect headwords and their content
+        const entries = {};
+        let currentWord = null;
+        let currentContent = [];
+
+        function saveCurrentEntry() {
+            if (currentWord && currentContent.length > 0) {
+                const key = currentWord.toLowerCase();
+                if (!entries[key]) {
+                    entries[key] = { word: currentWord, content: currentContent.join('\n') };
+                } else {
+                    entries[key].content += '\n\n' + currentContent.join('\n');
+                }
+            }
+        }
+
+        pages.forEach(lines => {
+            lines.forEach(line => {
+                // Detect headwords: lines that start with a bold/capitalized word
+                // Common dictionary patterns: word alone on line, or word followed by pronunciation
+                const headwordMatch = line.match(/^([a-zA-Z][-a-zA-Z']*)\s*(?:[/(\[]|$)/);
+                const isShortLine = line.length < 40;
+                const startsWithCap = /^[A-Z]/.test(line);
+                const isAllWord = /^[a-zA-Z][-a-zA-Z']*$/.test(line.trim());
+
+                // Headword detection: standalone word, or word followed by phonetic/POS
+                if (isAllWord && line.trim().length >= 3 && line.trim().length <= 30) {
+                    saveCurrentEntry();
+                    currentWord = line.trim();
+                    currentContent = [];
+                } else if (headwordMatch && isShortLine && headwordMatch[1].length >= 3) {
+                    saveCurrentEntry();
+                    currentWord = headwordMatch[1];
+                    currentContent = [line];
+                } else if (currentWord) {
+                    currentContent.push(line);
+                }
+            });
+        });
+        saveCurrentEntry();
+
+        // Store in IndexedDB
         await savePdfDictToIDB(id, entries);
 
-        // Save metadata in localStorage
+        // Save metadata
         const dicts = JSON.parse(localStorage.getItem('vocabPdfDicts') || '[]');
         dicts.push({ id, name, pages: totalPages, wordCount: Object.keys(entries).length, dateAdded: new Date().toISOString() });
         localStorage.setItem('vocabPdfDicts', JSON.stringify(dicts));
@@ -2072,7 +2110,7 @@ async function indexPdfDictionary(file) {
         select.insertBefore(opt, select.querySelector('[value="custom"]'));
         select.value = id;
 
-        showToast(`"${name}" indexed! ${Object.keys(entries).length} words from ${totalPages} pages.`, 'success');
+        showToast(`"${name}" indexed! ${Object.keys(entries).length} entries from ${totalPages} pages.`, 'success');
     } catch (err) {
         showToast('Error indexing PDF: ' + err.message, 'error');
     }
@@ -2117,18 +2155,51 @@ async function searchPdfDict(source, word) {
     if (!entries) throw new Error('PDF dictionary not found');
 
     const key = word.toLowerCase();
-    const entry = entries[key];
-    if (!entry || !entry.contexts.length) throw new Error('Word not found in PDF dictionary');
+    let entry = entries[key];
 
-    const meanings = [{
-        partOfSpeech: 'PDF Dictionary',
-        definitions: entry.contexts.map(ctx => ({
-            definition: ctx,
-            example: ''
-        }))
-    }];
+    // Try exact match first, then partial matches
+    if (!entry) {
+        // Try without trailing s/ed/ing
+        const stems = [key.replace(/s$/, ''), key.replace(/ed$/, ''), key.replace(/ing$/, ''), key.replace(/ly$/, '')];
+        for (const stem of stems) {
+            if (entries[stem]) { entry = entries[stem]; break; }
+        }
+    }
 
-    return buildStandardResult(word, '', '', meanings, [], [], []);
+    if (!entry || !entry.content) throw new Error('Word not found in PDF dictionary');
+
+    // Parse the content into structured display
+    const lines = entry.content.split('\n').filter(l => l.trim());
+    const meanings = [];
+    let currentDefs = [];
+
+    lines.forEach(line => {
+        // Detect numbered definitions or new sections
+        const numberedMatch = line.match(/^\s*(\d+)[.)]\s*(.*)/);
+        const posMatch = line.match(/^\s*(noun|verb|adjective|adverb|pronoun|preposition|conjunction|interjection)[.,;\s]/i);
+
+        if (posMatch) {
+            if (currentDefs.length) {
+                meanings.push({ partOfSpeech: '', definitions: currentDefs });
+                currentDefs = [];
+            }
+            meanings.push({ partOfSpeech: posMatch[1], definitions: [{ definition: line, example: '' }] });
+        } else if (numberedMatch) {
+            currentDefs.push({ definition: numberedMatch[2] || line, example: '' });
+        } else {
+            currentDefs.push({ definition: line, example: '' });
+        }
+    });
+
+    if (currentDefs.length) {
+        meanings.push({ partOfSpeech: meanings.length ? '' : `"${entry.word}"`, definitions: currentDefs });
+    }
+
+    if (meanings.length === 0) {
+        meanings.push({ partOfSpeech: `"${entry.word}"`, definitions: [{ definition: entry.content, example: '' }] });
+    }
+
+    return buildStandardResult(entry.word, '', '', meanings, [], [], []);
 }
 
 // --- Utilities ---
