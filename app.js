@@ -943,20 +943,27 @@ function displayWordResult(data) {
         pronounceBtn.dataset.audio = audioEntry?.audio || '';
     }
 
-    // Meanings
+    // Meanings with selectable checkboxes
     const meaningsDiv = document.getElementById('resultMeanings');
     let allSynonyms = [];
     let allAntonyms = [];
     let html = '';
+    let defIdx = 0;
 
-    data.meanings.forEach(meaning => {
+    data.meanings.forEach((meaning, mIdx) => {
+        const isSupplementary = /corpus|thesaurus|business/i.test(meaning.partOfSpeech);
         html += `<div class="meaning-group">
             <h3>${meaning.partOfSpeech}</h3>`;
         meaning.definitions.forEach((def, i) => {
-            html += `<div class="definition-item">
-                <p><strong>${i + 1}.</strong> ${def.definition}</p>
-                ${def.example ? `<p class="example">"${def.example}"</p>` : ''}
+            const checked = !isSupplementary && defIdx < 2 ? 'checked' : '';
+            html += `<div class="definition-item selectable-item">
+                <label class="save-check"><input type="checkbox" data-save-type="def" data-def-idx="${defIdx}" ${checked}></label>
+                <div class="def-content">
+                    <p><strong>${i + 1}.</strong> ${def.definition}</p>
+                    ${def.example ? `<p class="example">"${def.example}"</p>` : ''}
+                </div>
             </div>`;
+            defIdx++;
         });
         html += `</div>`;
         allSynonyms.push(...(meaning.synonyms || []));
@@ -969,39 +976,47 @@ function displayWordResult(data) {
 
     meaningsDiv.innerHTML = html;
 
+    // Store all definitions flat for save-selection
+    STATE._allDefs = [];
+    data.meanings.forEach(meaning => {
+        meaning.definitions.forEach(def => {
+            STATE._allDefs.push({ pos: meaning.partOfSpeech, definition: def.definition, example: def.example || '' });
+        });
+    });
+
     // Merge scraped synonyms/antonyms with API ones
     if (data._synonyms) allSynonyms.push(...data._synonyms);
     if (data._antonyms) allAntonyms.push(...data._antonyms);
 
-    // Synonyms
+    // Synonyms (selectable tags)
     const synSection = document.getElementById('resultSynonyms');
     const synList = document.getElementById('synonymsList');
     allSynonyms = [...new Set(allSynonyms)].slice(0, 12);
     if (allSynonyms.length) {
         synSection.classList.remove('hidden');
-        synList.innerHTML = allSynonyms.map(s => `<span class="tag" onclick="searchWord('${s}')">${s}</span>`).join('');
+        synList.innerHTML = allSynonyms.map(s => `<span class="tag tag-selectable selected" data-save-type="syn" data-value="${s}" onclick="toggleTagSelect(this)">${s}</span>`).join('');
     } else {
         synSection.classList.add('hidden');
     }
 
-    // Antonyms
+    // Antonyms (selectable tags)
     const antSection = document.getElementById('resultAntonyms');
     const antList = document.getElementById('antonymsList');
     allAntonyms = [...new Set(allAntonyms)].slice(0, 12);
     if (allAntonyms.length) {
         antSection.classList.remove('hidden');
-        antList.innerHTML = allAntonyms.map(a => `<span class="tag" onclick="searchWord('${a}')">${a}</span>`).join('');
+        antList.innerHTML = allAntonyms.map(a => `<span class="tag tag-selectable selected" data-save-type="ant" data-value="${a}" onclick="toggleTagSelect(this)">${a}</span>`).join('');
     } else {
         antSection.classList.add('hidden');
     }
 
-    // Phrases/Collocations
+    // Phrases/Collocations (selectable tags)
     const phrasesSection = document.getElementById('resultPhrases');
     const phrasesList = document.getElementById('phrasesList');
     const allPhrases = (data._phrases || []).slice(0, 20);
     if (allPhrases.length) {
         phrasesSection.classList.remove('hidden');
-        phrasesList.innerHTML = allPhrases.map(p => `<span class="tag phrase-tag">${p}</span>`).join('');
+        phrasesList.innerHTML = allPhrases.map(p => `<span class="tag phrase-tag tag-selectable selected" data-save-type="phrase" data-value="${p}" onclick="toggleTagSelect(this)">${p}</span>`).join('');
     } else {
         phrasesSection.classList.add('hidden');
     }
@@ -1019,18 +1034,49 @@ function displayWordResult(data) {
         }
     }
 
-    // Store current word data for saving
+    // Store current word data
     STATE.currentWord = {
         word: data.word,
         phonetic: data.phonetic || data.phonetics?.[0]?.text || '',
         partOfSpeech: data.meanings[0]?.partOfSpeech || '',
-        meaning: data.meanings[0]?.definitions[0]?.definition || '',
-        example: data.meanings[0]?.definitions[0]?.example || '',
-        synonyms: allSynonyms.slice(0, 8),
-        antonyms: allAntonyms.slice(0, 8),
-        phrases: allPhrases.slice(0, 8),
         audio: data.phonetics?.find(p => p.audio)?.audio || '',
         allMeanings: data.meanings,
+    };
+    STATE._allSynonyms = allSynonyms;
+    STATE._allAntonyms = allAntonyms;
+    STATE._allPhrases = allPhrases;
+}
+
+function toggleTagSelect(el) {
+    el.classList.toggle('selected');
+}
+
+function getSelectedSaveData() {
+    // Get checked definitions
+    const checkedDefs = document.querySelectorAll('[data-save-type="def"]:checked');
+    const meanings = [];
+    const examples = [];
+    checkedDefs.forEach(cb => {
+        const idx = parseInt(cb.dataset.defIdx);
+        const def = STATE._allDefs[idx];
+        if (def) {
+            meanings.push(def.definition);
+            if (def.example) examples.push(def.example);
+        }
+    });
+
+    // Get selected synonyms/antonyms/phrases
+    const synonyms = [...document.querySelectorAll('[data-save-type="syn"].selected')].map(el => el.dataset.value);
+    const antonyms = [...document.querySelectorAll('[data-save-type="ant"].selected')].map(el => el.dataset.value);
+    const phrases = [...document.querySelectorAll('[data-save-type="phrase"].selected')].map(el => el.dataset.value);
+
+    return {
+        meaning: meanings.join(' | '),
+        example: examples.join(' | '),
+        synonyms,
+        antonyms,
+        phrases,
+        partOfSpeech: STATE._allDefs.find((_, i) => document.querySelector(`[data-def-idx="${i}"]:checked`))?.pos || '',
     };
 }
 
@@ -1137,34 +1183,45 @@ function addCustomSource() {
 
 function saveCurrentWord() {
     if (!STATE.currentWord) return;
+    const selected = getSelectedSaveData();
+
+    if (!selected.meaning && !selected.synonyms.length && !selected.antonyms.length && !selected.phrases.length) {
+        showToast('Select at least one item to save!', 'error');
+        return;
+    }
+
     const existing = STATE.words.find(w => w.word.toLowerCase() === STATE.currentWord.word.toLowerCase());
 
     if (existing) {
-        // Merge new data into existing entry
-        const cur = STATE.currentWord;
-        if (cur.meaning && cur.meaning !== existing.meaning) {
-            existing.meaning = existing.meaning + ' | ' + cur.meaning;
+        // Merge selected data into existing entry
+        if (selected.meaning && !existing.meaning?.includes(selected.meaning.slice(0, 30))) {
+            existing.meaning = (existing.meaning ? existing.meaning + ' | ' : '') + selected.meaning;
         }
-        if (cur.example && !existing.example?.includes(cur.example)) {
-            existing.example = (existing.example ? existing.example + ' | ' : '') + cur.example;
+        if (selected.example && !existing.example?.includes(selected.example.slice(0, 30))) {
+            existing.example = (existing.example ? existing.example + ' | ' : '') + selected.example;
         }
         const mergeUnique = (arr1, arr2) => [...new Set([...(arr1 || []), ...(arr2 || [])])];
-        existing.synonyms = mergeUnique(existing.synonyms, cur.synonyms);
-        existing.antonyms = mergeUnique(existing.antonyms, cur.antonyms);
-        existing.phrases = mergeUnique(existing.phrases, cur.phrases);
-        if (cur.phonetic && !existing.phonetic) existing.phonetic = cur.phonetic;
-        if (cur.audio && !existing.audio) existing.audio = cur.audio;
-        if (cur.allMeanings) {
-            existing.allMeanings = mergeUnique(existing.allMeanings, cur.allMeanings);
-        }
+        existing.synonyms = mergeUnique(existing.synonyms, selected.synonyms);
+        existing.antonyms = mergeUnique(existing.antonyms, selected.antonyms);
+        existing.phrases = mergeUnique(existing.phrases, selected.phrases);
+        if (STATE.currentWord.phonetic && !existing.phonetic) existing.phonetic = STATE.currentWord.phonetic;
+        if (STATE.currentWord.audio && !existing.audio) existing.audio = STATE.currentWord.audio;
         saveWords();
-        showToast(`"${existing.word}" enriched with new data!`, 'success');
+        showToast(`"${existing.word}" enriched with selected data!`, 'success');
         return;
     }
 
     const source = document.getElementById('sourceSelect').value;
     const entry = {
-        ...STATE.currentWord,
+        word: STATE.currentWord.word,
+        phonetic: STATE.currentWord.phonetic || '',
+        partOfSpeech: selected.partOfSpeech || '',
+        meaning: selected.meaning,
+        example: selected.example,
+        synonyms: selected.synonyms,
+        antonyms: selected.antonyms,
+        phrases: selected.phrases,
+        audio: STATE.currentWord.audio || '',
         id: Date.now(),
         source: source,
         dateAdded: new Date().toISOString(),
