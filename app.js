@@ -289,9 +289,9 @@ async function scrapeFromSource(source, word) {
     if (!url) throw new Error('No URL');
 
     const proxies = [
+        (u) => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
         (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
         (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
-        (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
     ];
 
     let html = null;
@@ -661,8 +661,8 @@ function parseVocabulary(doc, word) {
         }
 
         const examples = [];
-        sense.querySelectorAll('.defContent > .example').forEach(ex => {
-            const t = ex.textContent?.trim().replace(/[""]/g, '');
+        sense.querySelectorAll('.defContent .example').forEach(ex => {
+            const t = ex.textContent?.trim().replace(/[“”""]/g, '');
             if (t) examples.push(t);
         });
 
@@ -2053,9 +2053,9 @@ async function loadReaderUrl() {
 async function fetchUrlContent(url) {
     // Try multiple CORS proxies with longer timeout for full page loads
     const proxies = [
+        (u) => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
         (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
         (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
-        (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
     ];
 
     for (const proxyFn of proxies) {
