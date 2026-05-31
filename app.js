@@ -232,14 +232,15 @@ function initAutocomplete(input) {
 
         renderAcItems(acBox, savedMatches, input);
 
-        // Debounced fetch from Wiktionary for word suggestions
+        // Debounced fetch from Datamuse API for word suggestions
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(async () => {
             try {
-                const res = await fetch(`https://en.wiktionary.org/w/api.php?action=opensearch&format=json&search=${encodeURIComponent(val)}&limit=10&namespace=0&origin=*`, { signal: AbortSignal.timeout(3000) });
+                const res = await fetch(`https://api.datamuse.com/sug?s=${encodeURIComponent(val)}&max=10`, { signal: AbortSignal.timeout(3000) });
                 if (!res.ok) return;
                 const data = await res.json();
-                const suggestions = (data[1] || [])
+                const suggestions = data
+                    .map(d => d.word)
                     .filter(w => /^[a-zA-Z'-]+$/.test(w))
                     .filter(w => !savedMatches.find(s => s.word.toLowerCase() === w.toLowerCase()))
                     .slice(0, 6)
