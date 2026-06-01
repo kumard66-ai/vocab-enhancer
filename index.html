@@ -457,20 +457,32 @@
             </div>
 
             <div class="flashcard-controls">
-                <div class="range-selector">
-                    <label>Select words from history:</label>
-                    <div class="range-inputs">
-                        <input type="number" id="fcFrom" placeholder="From #" min="1">
-                        <span>to</span>
-                        <input type="number" id="fcTo" placeholder="To #">
-                        <button id="generateCards" class="btn btn-primary btn-sm">
-                            <i class="fas fa-magic"></i> Generate Cards
-                        </button>
+                <div class="fc-controls-row">
+                    <div class="fc-control-group">
+                        <label>From:</label>
+                        <select id="fcFrom"></select>
                     </div>
-                </div>
-                <div class="fc-options">
-                    <label><input type="checkbox" id="shuffleCards"> Shuffle</label>
-                    <label><input type="checkbox" id="showExample"> Show Examples</label>
+                    <div class="fc-control-group">
+                        <label>To:</label>
+                        <select id="fcTo"></select>
+                    </div>
+                    <div class="fc-control-group">
+                        <label>Type:</label>
+                        <select id="fcType">
+                            <option value="classic">Classic (Word ↔ Meaning)</option>
+                            <option value="meaning">Word → Meaning</option>
+                            <option value="word">Meaning → Word</option>
+                            <option value="fill">Fill in the Blank</option>
+                            <option value="synonym">Synonym Match</option>
+                        </select>
+                    </div>
+                    <div class="fc-control-group fc-checkboxes">
+                        <label><input type="checkbox" id="shuffleCards"> Shuffle</label>
+                        <label><input type="checkbox" id="showExample"> Examples</label>
+                    </div>
+                    <button id="generateCards" class="btn btn-primary btn-sm">
+                        <i class="fas fa-magic"></i> Generate
+                    </button>
                 </div>
             </div>
 
@@ -482,6 +494,7 @@
                     </div>
                 </div>
 
+                <!-- Classic flip card -->
                 <div class="flashcard" id="flashcard">
                     <div class="flashcard-inner">
                         <div class="flashcard-front">
@@ -495,6 +508,13 @@
                             <p id="fcExample" class="fc-example"></p>
                         </div>
                     </div>
+                </div>
+
+                <!-- Quiz-style card -->
+                <div class="fc-quiz-card hidden" id="fcQuizCard">
+                    <div class="fc-quiz-question" id="fcQuizQuestion"></div>
+                    <div class="fc-quiz-options" id="fcQuizOptions"></div>
+                    <div class="fc-quiz-feedback hidden" id="fcQuizFeedback"></div>
                 </div>
 
                 <div class="fc-nav">

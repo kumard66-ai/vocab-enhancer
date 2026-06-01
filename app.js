@@ -1262,6 +1262,8 @@ function updateHistoryStats() {
     else sizeStr = (bytes / (1024 * 1024)).toFixed(2) + ' MB';
     const navMem = document.getElementById('navMemoryBadge');
     if (navMem) navMem.textContent = sizeStr;
+
+    if (typeof populateFcRange === 'function') populateFcRange();
 }
 
 function initHistory() {
@@ -1816,25 +1818,42 @@ function initFlashcards() {
     document.getElementById('flashcard').addEventListener('click', flipCard);
 
     document.querySelectorAll('.fc-rate').forEach(btn => {
-        btn.addEventListener('click', (e) => rateCard(parseInt(btn.dataset.rating)));
+        btn.addEventListener('click', () => rateCard(parseInt(btn.dataset.rating)));
     });
+
+    populateFcRange();
+}
+
+function populateFcRange() {
+    const fromSel = document.getElementById('fcFrom');
+    const toSel = document.getElementById('fcTo');
+    const count = STATE.words.length;
+    fromSel.innerHTML = '';
+    toSel.innerHTML = '';
+    for (let i = 1; i <= count; i++) {
+        fromSel.innerHTML += `<option value="${i}">${i}</option>`;
+        toSel.innerHTML += `<option value="${i}">${i}</option>`;
+    }
+    if (count > 0) toSel.value = count;
 }
 
 function generateFlashcards() {
-    const from = parseInt(document.getElementById('fcFrom').value) || 1;
-    const to = parseInt(document.getElementById('fcTo').value) || STATE.words.length;
-    const shuffle = document.getElementById('shuffleCards').checked;
-
     if (STATE.words.length === 0) {
         showToast('No words in history! Add some words first.', 'error');
         return;
     }
+
+    const from = parseInt(document.getElementById('fcFrom').value) || 1;
+    const to = parseInt(document.getElementById('fcTo').value) || STATE.words.length;
+    const shuffle = document.getElementById('shuffleCards').checked;
+    const fcType = document.getElementById('fcType').value;
 
     let cards = STATE.words.slice(from - 1, to);
     if (shuffle) cards = shuffleArray([...cards]);
 
     STATE.currentFlashcards = cards;
     STATE.currentFcIndex = 0;
+    STATE.fcType = fcType;
 
     document.getElementById('flashcardArea').classList.remove('hidden');
     document.getElementById('fcEmpty').classList.add('hidden');
@@ -1848,18 +1867,110 @@ function showCard(index) {
     if (!card) return;
 
     STATE.currentFcIndex = index;
-    document.getElementById('fcWord').textContent = card.word;
-    document.getElementById('fcPhonetic').textContent = card.phonetic || '';
-    document.getElementById('fcPos').textContent = card.partOfSpeech;
-    document.getElementById('fcMeaning').textContent = card.meaning;
-    document.getElementById('fcExample').textContent = document.getElementById('showExample').checked ? (card.example || '') : '';
     document.getElementById('fcCurrent').textContent = index + 1;
 
     const progress = ((index + 1) / STATE.currentFlashcards.length) * 100;
     document.getElementById('fcProgressFill').style.width = progress + '%';
 
-    // Reset flip
-    document.getElementById('flashcard').classList.remove('flipped');
+    const fcType = STATE.fcType || 'classic';
+    const classicCard = document.getElementById('flashcard');
+    const quizCard = document.getElementById('fcQuizCard');
+
+    if (fcType === 'classic') {
+        classicCard.classList.remove('hidden');
+        quizCard.classList.add('hidden');
+        classicCard.classList.remove('flipped');
+        document.getElementById('fcWord').textContent = card.word;
+        document.getElementById('fcPhonetic').textContent = card.phonetic || '';
+        document.getElementById('fcPos').textContent = card.partOfSpeech;
+        document.getElementById('fcMeaning').textContent = card.meaning;
+        document.getElementById('fcExample').textContent = document.getElementById('showExample').checked ? (card.example || '') : '';
+    } else {
+        classicCard.classList.add('hidden');
+        quizCard.classList.remove('hidden');
+        showFcQuizCard(card, fcType);
+    }
+}
+
+function showFcQuizCard(card, type) {
+    const questionEl = document.getElementById('fcQuizQuestion');
+    const optionsEl = document.getElementById('fcQuizOptions');
+    const feedbackEl = document.getElementById('fcQuizFeedback');
+    feedbackEl.classList.add('hidden');
+
+    let question = '';
+    let correct = '';
+    let options = [];
+
+    const otherWords = STATE.currentFlashcards.filter(w => w.id !== card.id);
+
+    if (type === 'meaning') {
+        question = `What does "<strong>${card.word}</strong>" mean?`;
+        correct = card.meaning;
+        const wrongs = shuffleArray(otherWords).slice(0, 3).map(w => w.meaning);
+        options = shuffleArray([correct, ...wrongs]);
+    } else if (type === 'word') {
+        const shortMeaning = card.meaning.length > 80 ? card.meaning.slice(0, 80) + '...' : card.meaning;
+        question = `Which word means: "<em>${shortMeaning}</em>"?`;
+        correct = card.word;
+        const wrongs = shuffleArray(otherWords).slice(0, 3).map(w => w.word);
+        options = shuffleArray([correct, ...wrongs]);
+    } else if (type === 'fill') {
+        const example = card.example || `The ___ was used in a sentence.`;
+        const blanked = example.replace(new RegExp(card.word, 'gi'), '________');
+        question = `Fill in the blank:<br><em>"${blanked}"</em>`;
+        correct = card.word;
+        const wrongs = shuffleArray(otherWords).slice(0, 3).map(w => w.word);
+        options = shuffleArray([correct, ...wrongs]);
+    } else if (type === 'synonym') {
+        question = `Which is a synonym or related to "<strong>${card.word}</strong>"?`;
+        correct = (card.synonyms && card.synonyms[0]) || card.meaning.split(' ').slice(0, 2).join(' ');
+        const wrongs = shuffleArray(otherWords).slice(0, 3).map(w => (w.synonyms && w.synonyms[0]) || w.word);
+        options = shuffleArray([correct, ...wrongs]);
+    }
+
+    questionEl.innerHTML = question;
+    optionsEl.innerHTML = options.map(opt =>
+        `<div class="fc-quiz-option" data-answer="${escapeHtml(opt)}">${opt}</div>`
+    ).join('');
+
+    optionsEl.querySelectorAll('.fc-quiz-option').forEach(el => {
+        el.addEventListener('click', () => handleFcQuizAnswer(el, correct));
+    });
+}
+
+function handleFcQuizAnswer(el, correct) {
+    const optionsEl = document.getElementById('fcQuizOptions');
+    const feedbackEl = document.getElementById('fcQuizFeedback');
+    const selected = el.dataset.answer;
+
+    optionsEl.querySelectorAll('.fc-quiz-option').forEach(opt => {
+        opt.classList.add('disabled');
+        if (opt.dataset.answer === correct) opt.classList.add('correct');
+    });
+
+    if (selected === correct) {
+        el.classList.add('correct');
+        feedbackEl.innerHTML = '<span style="color:#16a34a"><i class="fas fa-check-circle"></i> Correct!</span>';
+        rateCardSilent(3);
+    } else {
+        el.classList.add('wrong');
+        feedbackEl.innerHTML = '<span style="color:#dc2626"><i class="fas fa-times-circle"></i> Wrong</span>';
+        rateCardSilent(1);
+    }
+    feedbackEl.classList.remove('hidden');
+}
+
+function rateCardSilent(rating) {
+    const card = STATE.currentFlashcards[STATE.currentFcIndex];
+    const wordEntry = STATE.words.find(w => w.id === card.id);
+    if (wordEntry) {
+        wordEntry.reviewCount = (wordEntry.reviewCount || 0) + 1;
+        if (rating === 3) wordEntry.mastery = wordEntry.reviewCount >= 3 ? 'mastered' : 'familiar';
+        else if (rating === 2) wordEntry.mastery = 'learning';
+        else wordEntry.mastery = 'new';
+        saveWords();
+    }
 }
 
 function flipCard() {
@@ -1879,15 +1990,7 @@ function nextCard() {
 }
 
 function rateCard(rating) {
-    const card = STATE.currentFlashcards[STATE.currentFcIndex];
-    const wordEntry = STATE.words.find(w => w.id === card.id);
-    if (wordEntry) {
-        wordEntry.reviewCount = (wordEntry.reviewCount || 0) + 1;
-        if (rating === 3) wordEntry.mastery = wordEntry.reviewCount >= 3 ? 'mastered' : 'familiar';
-        else if (rating === 2) wordEntry.mastery = 'learning';
-        else wordEntry.mastery = 'new';
-        saveWords();
-    }
+    rateCardSilent(rating);
     nextCard();
 }
 
