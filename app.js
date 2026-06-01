@@ -2598,17 +2598,22 @@ function initReader() {
     });
     document.getElementById('textPanelPageSelect').addEventListener('change', (e) => {
         const pageEl = document.getElementById('pdf-text-page-' + e.target.value);
-        if (pageEl) pageEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const scrollContainer = document.getElementById('readerTextContent');
+        if (pageEl && scrollContainer) {
+            scrollContainer.scrollTop = pageEl.offsetTop - scrollContainer.offsetTop;
+        }
     });
 
-    // Double-click on text panel for lookup
+    // Double-click and text selection on text panel for lookup
     document.getElementById('readerTextContent').addEventListener('dblclick', handleReaderDblClick);
+    document.getElementById('readerTextContent').addEventListener('mouseup', handleReaderSelection);
 
     // Save all from sidebar
     document.getElementById('readerSaveAll').addEventListener('click', readerSaveAllSession);
 
-    // Double-click to lookup word in reader
+    // Double-click and text selection to lookup word in reader
     document.getElementById('readerBody').addEventListener('dblclick', handleReaderDblClick);
+    document.getElementById('readerBody').addEventListener('mouseup', handleReaderSelection);
 
     // Close popup when clicking outside
     document.addEventListener('mousedown', (e) => {
@@ -2616,6 +2621,29 @@ function initReader() {
         if (!popup.classList.contains('hidden') && !popup.contains(e.target)) {
             hideReaderPopup();
         }
+    });
+
+    // Make popup draggable
+    const dragHandle = document.getElementById('popupDragHandle');
+    const popup = document.getElementById('readerPopup');
+    let isDragging = false, dragOffsetX = 0, dragOffsetY = 0;
+
+    dragHandle.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        dragOffsetX = e.clientX - popup.offsetLeft;
+        dragOffsetY = e.clientY - popup.offsetTop;
+        popup.style.animation = 'none';
+        e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        popup.style.left = (e.clientX - dragOffsetX) + 'px';
+        popup.style.top = (e.clientY - dragOffsetY) + 'px';
+    });
+
+    document.addEventListener('mouseup', () => {
+        isDragging = false;
     });
 }
 
@@ -2969,6 +2997,25 @@ function handleReaderDblClick(e) {
     if (word.length < 2) return;
 
     showReaderPopup(word, e.clientX, e.clientY);
+}
+
+function handleReaderSelection(e) {
+    // Skip if it was a double-click (handled by dblclick)
+    if (e.detail >= 2) return;
+
+    setTimeout(() => {
+        const selection = window.getSelection();
+        const selectedText = selection.toString().trim();
+
+        if (!selectedText || selectedText.includes(' ') || selectedText.length < 2 || selectedText.length > 30) {
+            return;
+        }
+
+        const word = selectedText.replace(/[^a-zA-Z'-]/g, '').toLowerCase();
+        if (word.length < 2) return;
+
+        showReaderPopup(word, e.clientX, e.clientY);
+    }, 200);
 }
 
 async function showReaderPopup(word, x, y) {
