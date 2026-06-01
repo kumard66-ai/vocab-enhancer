@@ -2590,6 +2590,16 @@ function initReader() {
         if (e.key === 'Enter') readerLookupFromBox();
     });
 
+    // Extract text panel
+    document.getElementById('readerExtractText').addEventListener('click', extractPdfTextPanel);
+    document.getElementById('readerTextPanelClose').addEventListener('click', () => {
+        document.getElementById('readerTextPanel').classList.add('hidden');
+        document.querySelector('.reader-split-view').classList.remove('has-text-panel');
+    });
+
+    // Double-click on text panel for lookup
+    document.getElementById('readerTextContent').addEventListener('dblclick', handleReaderDblClick);
+
     // Save all from sidebar
     document.getElementById('readerSaveAll').addEventListener('click', readerSaveAllSession);
 
@@ -2620,6 +2630,7 @@ async function openReaderFile(file) {
                 // Small PDF: render as text in reader body (double-click works)
                 await renderPdfEmbedded(file, readerBody);
                 document.getElementById('readerLookupBox').classList.add('hidden');
+                document.getElementById('readerExtractText').classList.add('hidden');
             } else {
                 // Large PDF: use native browser viewer
                 const blobUrl = URL.createObjectURL(file);
@@ -2628,6 +2639,9 @@ async function openReaderFile(file) {
                 const iframe = document.getElementById('readerFrame');
                 iframe.src = blobUrl;
                 document.getElementById('readerLookupBox').classList.remove('hidden');
+                // Show extract text button and store file reference
+                document.getElementById('readerExtractText').classList.remove('hidden');
+                STATE.readerPdfFile = file;
             }
         } else {
             let html = '';
@@ -2655,6 +2669,46 @@ async function openReaderFile(file) {
         updateReaderSidebar();
     } catch (err) {
         showToast('Error opening file: ' + err.message, 'error');
+    }
+}
+
+async function extractPdfTextPanel() {
+    const file = STATE.readerPdfFile;
+    if (!file) return;
+    const textPanel = document.getElementById('readerTextPanel');
+    const textContent = document.getElementById('readerTextContent');
+    const splitView = document.querySelector('.reader-split-view');
+
+    textContent.innerHTML = '<p style="color:var(--text-muted)"><i class="fas fa-spinner fa-spin"></i> Extracting text...</p>';
+    textPanel.classList.remove('hidden');
+    splitView.classList.add('has-text-panel');
+
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let html = '';
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const content = await page.getTextContent();
+            let pageHtml = '';
+            let lastY = null;
+
+            content.items.forEach(item => {
+                if (lastY !== null && Math.abs(item.transform[5] - lastY) > 5) {
+                    pageHtml += '<br>';
+                }
+                pageHtml += escapeHtml(item.str) + ' ';
+                lastY = item.transform[5];
+            });
+
+            html += `<div class="pdf-page-text"><strong style="color:var(--text-muted);font-size:0.75rem">Page ${i}</strong><br>${pageHtml}</div>`;
+            if (i < pdf.numPages) html += '<hr class="pdf-page-divider">';
+        }
+
+        textContent.innerHTML = html;
+    } catch (err) {
+        textContent.innerHTML = `<p style="color:var(--danger)">Failed to extract text: ${err.message}</p>`;
     }
 }
 
@@ -2865,6 +2919,9 @@ function closeReader() {
     document.getElementById('readerSidebar').classList.add('hidden');
     document.getElementById('readerFilePanel').classList.remove('hidden');
     document.getElementById('readerLookupBox').classList.add('hidden');
+    document.getElementById('readerExtractText').classList.add('hidden');
+    document.getElementById('readerTextPanel').classList.add('hidden');
+    document.querySelector('.reader-split-view').classList.remove('has-text-panel');
     const iframe = document.getElementById('readerFrame');
     if (iframe.src && iframe.src.startsWith('blob:')) {
         URL.revokeObjectURL(iframe.src);
@@ -2872,6 +2929,7 @@ function closeReader() {
     }
     document.getElementById('readerIframe').classList.add('hidden');
     document.getElementById('readerBody').classList.remove('hidden');
+    STATE.readerPdfFile = null;
     hideReaderPopup();
 }
 

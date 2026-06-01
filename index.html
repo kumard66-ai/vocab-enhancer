@@ -271,13 +271,27 @@
             <div id="readerContent" class="reader-content hidden">
                 <div class="reader-doc-header">
                     <span id="readerDocTitle"><i class="fas fa-file"></i> Document</span>
-                    <button id="readerClose" class="btn btn-outline btn-sm">
-                        <i class="fas fa-times"></i> Close
-                    </button>
+                    <div class="reader-doc-actions">
+                        <button id="readerExtractText" class="btn btn-outline btn-sm hidden">
+                            <i class="fas fa-align-left"></i> Extract Text
+                        </button>
+                        <button id="readerClose" class="btn btn-outline btn-sm">
+                            <i class="fas fa-times"></i> Close
+                        </button>
+                    </div>
                 </div>
-                <div id="readerBody" class="reader-body"></div>
-                <div id="readerIframe" class="reader-iframe-container hidden">
-                    <iframe id="readerFrame"></iframe>
+                <div class="reader-split-view">
+                    <div id="readerBody" class="reader-body"></div>
+                    <div id="readerIframe" class="reader-iframe-container hidden">
+                        <iframe id="readerFrame"></iframe>
+                    </div>
+                    <div id="readerTextPanel" class="reader-text-panel hidden">
+                        <div class="text-panel-header">
+                            <span><i class="fas fa-align-left"></i> Extracted Text</span>
+                            <button id="readerTextPanelClose" class="btn-icon" title="Close panel"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div id="readerTextContent" class="reader-text-content"></div>
+                    </div>
                 </div>
             </div>
 

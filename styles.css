@@ -1598,15 +1598,73 @@ body {
     border-top: 1px dashed var(--border);
 }
 
+.reader-split-view {
+    display: flex;
+    width: 100%;
+    height: 80vh;
+    overflow: hidden;
+}
+
+.reader-split-view .reader-body {
+    flex: 1;
+    max-height: 100%;
+}
+
+.reader-split-view .reader-iframe-container {
+    flex: 1;
+    height: 100%;
+}
+
+.reader-split-view.has-text-panel .reader-iframe-container {
+    flex: 1;
+}
+
 .reader-iframe-container {
     width: 100%;
-    height: 85vh;
+    height: 100%;
 }
 
 .reader-iframe-container iframe {
     width: 100%;
     height: 100%;
     border: none;
+}
+
+.reader-text-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--border);
+    max-height: 100%;
+}
+
+.text-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    background: var(--bg-hover);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.reader-text-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem;
+    line-height: 1.8;
+    font-size: 0.95rem;
+    color: var(--text);
+    user-select: text;
+    cursor: text;
+}
+
+.reader-doc-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
 }
 
 .reader-lookup-box {
