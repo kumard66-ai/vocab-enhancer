@@ -2596,6 +2596,10 @@ function initReader() {
         document.getElementById('readerTextPanel').classList.add('hidden');
         document.querySelector('.reader-split-view').classList.remove('has-text-panel');
     });
+    document.getElementById('textPanelPageSelect').addEventListener('change', (e) => {
+        const pageEl = document.getElementById('pdf-text-page-' + e.target.value);
+        if (pageEl) pageEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
 
     // Double-click on text panel for lookup
     document.getElementById('readerTextContent').addEventListener('dblclick', handleReaderDblClick);
@@ -2677,9 +2681,11 @@ async function extractPdfTextPanel() {
     if (!file) return;
     const textPanel = document.getElementById('readerTextPanel');
     const textContent = document.getElementById('readerTextContent');
+    const pageSelect = document.getElementById('textPanelPageSelect');
     const splitView = document.querySelector('.reader-split-view');
 
     textContent.innerHTML = '<p style="color:var(--text-muted)"><i class="fas fa-spinner fa-spin"></i> Extracting text...</p>';
+    pageSelect.innerHTML = '';
     textPanel.classList.remove('hidden');
     splitView.classList.add('has-text-panel');
 
@@ -2702,8 +2708,13 @@ async function extractPdfTextPanel() {
                 lastY = item.transform[5];
             });
 
-            html += `<div class="pdf-page-text"><strong style="color:var(--text-muted);font-size:0.75rem">Page ${i}</strong><br>${pageHtml}</div>`;
+            html += `<div class="pdf-page-text" id="pdf-text-page-${i}"><strong style="color:var(--text-muted);font-size:0.75rem">— Page ${i} —</strong><br>${pageHtml}</div>`;
             if (i < pdf.numPages) html += '<hr class="pdf-page-divider">';
+
+            const opt = document.createElement('option');
+            opt.value = i;
+            opt.textContent = `Page ${i}`;
+            pageSelect.appendChild(opt);
         }
 
         textContent.innerHTML = html;

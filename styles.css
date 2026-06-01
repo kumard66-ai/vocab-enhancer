@@ -1648,6 +1648,29 @@ body {
     font-size: 0.8rem;
     font-weight: 600;
     color: var(--text-secondary);
+    gap: 0.5rem;
+}
+
+.text-panel-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.text-panel-nav label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.text-panel-page-select {
+    padding: 0.2rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 0.78rem;
+    cursor: pointer;
 }
 
 .reader-text-content {
