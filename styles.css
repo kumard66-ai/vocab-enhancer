@@ -1585,6 +1585,19 @@ body {
     border-radius: var(--radius-sm);
 }
 
+.pdf-page-text {
+    padding: 1rem 0;
+    line-height: 1.9;
+    word-spacing: 0.05em;
+}
+
+.pdf-page-divider {
+    margin: 1.5rem 0;
+    opacity: 0.3;
+    border: none;
+    border-top: 1px dashed var(--border);
+}
+
 .reader-iframe-container {
     width: 100%;
     height: 85vh;

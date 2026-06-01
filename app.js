@@ -2615,14 +2615,20 @@ async function openReaderFile(file) {
 
     try {
         if (file.name.endsWith('.pdf')) {
-            // Use native browser PDF viewer via iframe
-            const blobUrl = URL.createObjectURL(file);
-            readerBody.classList.add('hidden');
-            iframeContainer.classList.remove('hidden');
-            const iframe = document.getElementById('readerFrame');
-            iframe.src = blobUrl;
-            // Show floating lookup box for PDF mode
-            document.getElementById('readerLookupBox').classList.remove('hidden');
+            const PDF_SIZE_LIMIT = 5 * 1024 * 1024; // 5MB
+            if (file.size <= PDF_SIZE_LIMIT) {
+                // Small PDF: render as text in reader body (double-click works)
+                await renderPdfEmbedded(file, readerBody);
+                document.getElementById('readerLookupBox').classList.add('hidden');
+            } else {
+                // Large PDF: use native browser viewer
+                const blobUrl = URL.createObjectURL(file);
+                readerBody.classList.add('hidden');
+                iframeContainer.classList.remove('hidden');
+                const iframe = document.getElementById('readerFrame');
+                iframe.src = blobUrl;
+                document.getElementById('readerLookupBox').classList.remove('hidden');
+            }
         } else {
             let html = '';
             if (file.name.endsWith('.txt') || file.name.endsWith('.md')) {
@@ -2652,6 +2658,31 @@ async function openReaderFile(file) {
     }
 }
 
+async function renderPdfEmbedded(file, container) {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let html = '';
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        let pageHtml = '';
+        let lastY = null;
+
+        content.items.forEach(item => {
+            if (lastY !== null && Math.abs(item.transform[5] - lastY) > 5) {
+                pageHtml += '<br>';
+            }
+            pageHtml += escapeHtml(item.str) + ' ';
+            lastY = item.transform[5];
+        });
+
+        html += `<div class="pdf-page-text">${pageHtml}</div>`;
+        if (i < pdf.numPages) html += '<hr class="pdf-page-divider">';
+    }
+
+    container.innerHTML = html;
+}
 
 async function loadReaderUrl() {
     const url = document.getElementById('readerUrlInput').value.trim();
