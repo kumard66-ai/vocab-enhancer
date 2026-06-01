@@ -1816,6 +1816,8 @@ function initFlashcards() {
     document.getElementById('fcPrev').addEventListener('click', prevCard);
     document.getElementById('fcNext').addEventListener('click', nextCard);
     document.getElementById('flashcard').addEventListener('click', flipCard);
+    document.getElementById('fcPronounceUS').addEventListener('click', (e) => { e.stopPropagation(); fcPronounce('us'); });
+    document.getElementById('fcPronounceUK').addEventListener('click', (e) => { e.stopPropagation(); fcPronounce('uk'); });
 
     document.querySelectorAll('.fc-rate').forEach(btn => {
         btn.addEventListener('click', () => rateCard(parseInt(btn.dataset.rating)));
@@ -1872,104 +1874,62 @@ function showCard(index) {
     const progress = ((index + 1) / STATE.currentFlashcards.length) * 100;
     document.getElementById('fcProgressFill').style.width = progress + '%';
 
+    // Reset flip
+    document.getElementById('flashcard').classList.remove('flipped');
+
     const fcType = STATE.fcType || 'classic';
-    const classicCard = document.getElementById('flashcard');
-    const quizCard = document.getElementById('fcQuizCard');
+    const frontContent = document.getElementById('fcFrontContent');
 
+    // Front side — the clue
     if (fcType === 'classic') {
-        classicCard.classList.remove('hidden');
-        quizCard.classList.add('hidden');
-        classicCard.classList.remove('flipped');
-        document.getElementById('fcWord').textContent = card.word;
-        document.getElementById('fcPhonetic').textContent = card.phonetic || '';
-        document.getElementById('fcPos').textContent = card.partOfSpeech;
-        document.getElementById('fcMeaning').textContent = card.meaning;
-        document.getElementById('fcExample').textContent = document.getElementById('showExample').checked ? (card.example || '') : '';
-    } else {
-        classicCard.classList.add('hidden');
-        quizCard.classList.remove('hidden');
-        showFcQuizCard(card, fcType);
-    }
-}
-
-function showFcQuizCard(card, type) {
-    const questionEl = document.getElementById('fcQuizQuestion');
-    const optionsEl = document.getElementById('fcQuizOptions');
-    const feedbackEl = document.getElementById('fcQuizFeedback');
-    feedbackEl.classList.add('hidden');
-
-    let question = '';
-    let correct = '';
-    let options = [];
-
-    const otherWords = STATE.currentFlashcards.filter(w => w.id !== card.id);
-
-    if (type === 'meaning') {
-        question = `What does "<strong>${card.word}</strong>" mean?`;
-        correct = card.meaning;
-        const wrongs = shuffleArray(otherWords).slice(0, 3).map(w => w.meaning);
-        options = shuffleArray([correct, ...wrongs]);
-    } else if (type === 'word') {
-        const shortMeaning = card.meaning.length > 80 ? card.meaning.slice(0, 80) + '...' : card.meaning;
-        question = `Which word means: "<em>${shortMeaning}</em>"?`;
-        correct = card.word;
-        const wrongs = shuffleArray(otherWords).slice(0, 3).map(w => w.word);
-        options = shuffleArray([correct, ...wrongs]);
-    } else if (type === 'fill') {
-        const example = card.example || `The ___ was used in a sentence.`;
+        frontContent.innerHTML = `
+            <h2 class="fc-front-word">${card.word}</h2>
+            <p class="fc-front-phonetic">${card.phonetic || ''}</p>
+        `;
+    } else if (fcType === 'meaning') {
+        frontContent.innerHTML = `
+            <p class="fc-front-label">What word has this meaning?</p>
+            <p class="fc-front-clue">${card.meaning}</p>
+        `;
+    } else if (fcType === 'fill') {
+        const example = card.example || 'No example available for this word.';
         const blanked = example.replace(new RegExp(card.word, 'gi'), '________');
-        question = `Fill in the blank:<br><em>"${blanked}"</em>`;
-        correct = card.word;
-        const wrongs = shuffleArray(otherWords).slice(0, 3).map(w => w.word);
-        options = shuffleArray([correct, ...wrongs]);
-    } else if (type === 'synonym') {
-        question = `Which is a synonym or related to "<strong>${card.word}</strong>"?`;
-        correct = (card.synonyms && card.synonyms[0]) || card.meaning.split(' ').slice(0, 2).join(' ');
-        const wrongs = shuffleArray(otherWords).slice(0, 3).map(w => (w.synonyms && w.synonyms[0]) || w.word);
-        options = shuffleArray([correct, ...wrongs]);
+        frontContent.innerHTML = `
+            <p class="fc-front-label">Fill in the blank:</p>
+            <p class="fc-front-clue">"${blanked}"</p>
+            <p class="fc-front-hint">(${card.meaning})</p>
+        `;
+    } else if (fcType === 'synonym') {
+        const syns = (card.synonyms || []).slice(0, 3).join(', ') || 'N/A';
+        const ants = (card.antonyms || []).slice(0, 3).join(', ') || 'N/A';
+        frontContent.innerHTML = `
+            <p class="fc-front-label">What word has these?</p>
+            <p class="fc-front-clue"><strong>Synonyms:</strong> ${syns}</p>
+            <p class="fc-front-clue"><strong>Antonyms:</strong> ${ants}</p>
+            <p class="fc-front-hint">(${card.partOfSpeech})</p>
+        `;
     }
 
-    questionEl.innerHTML = question;
-    optionsEl.innerHTML = options.map(opt =>
-        `<div class="fc-quiz-option" data-answer="${escapeHtml(opt)}">${opt}</div>`
-    ).join('');
+    // Back side — always the answer (word + pronunciation + meaning + example)
+    document.getElementById('fcBackWord').textContent = card.word;
+    document.getElementById('fcBackPhonetic').textContent = card.phonetic || '';
+    document.getElementById('fcBackPos').textContent = card.partOfSpeech;
+    document.getElementById('fcBackMeaning').textContent = card.meaning;
+    document.getElementById('fcBackExample').textContent = card.example || '';
 
-    optionsEl.querySelectorAll('.fc-quiz-option').forEach(el => {
-        el.addEventListener('click', () => handleFcQuizAnswer(el, correct));
-    });
+    // Store audio for pronunciation
+    STATE._fcCurrentAudio = card.audio || '';
+    STATE._fcCurrentWord = card.word;
 }
 
-function handleFcQuizAnswer(el, correct) {
-    const optionsEl = document.getElementById('fcQuizOptions');
-    const feedbackEl = document.getElementById('fcQuizFeedback');
-    const selected = el.dataset.answer;
-
-    optionsEl.querySelectorAll('.fc-quiz-option').forEach(opt => {
-        opt.classList.add('disabled');
-        if (opt.dataset.answer === correct) opt.classList.add('correct');
-    });
-
-    if (selected === correct) {
-        el.classList.add('correct');
-        feedbackEl.innerHTML = '<span style="color:#16a34a"><i class="fas fa-check-circle"></i> Correct!</span>';
-        rateCardSilent(3);
-    } else {
-        el.classList.add('wrong');
-        feedbackEl.innerHTML = '<span style="color:#dc2626"><i class="fas fa-times-circle"></i> Wrong</span>';
-        rateCardSilent(1);
-    }
-    feedbackEl.classList.remove('hidden');
-}
-
-function rateCardSilent(rating) {
-    const card = STATE.currentFlashcards[STATE.currentFcIndex];
-    const wordEntry = STATE.words.find(w => w.id === card.id);
-    if (wordEntry) {
-        wordEntry.reviewCount = (wordEntry.reviewCount || 0) + 1;
-        if (rating === 3) wordEntry.mastery = wordEntry.reviewCount >= 3 ? 'mastered' : 'familiar';
-        else if (rating === 2) wordEntry.mastery = 'learning';
-        else wordEntry.mastery = 'new';
-        saveWords();
+function fcPronounce(accent) {
+    const audio = STATE._fcCurrentAudio;
+    if (audio) {
+        new Audio(audio).play().catch(() => {});
+    } else if (STATE._fcCurrentWord) {
+        const utterance = new SpeechSynthesisUtterance(STATE._fcCurrentWord);
+        utterance.lang = accent === 'uk' ? 'en-GB' : 'en-US';
+        speechSynthesis.speak(utterance);
     }
 }
 
@@ -1990,7 +1950,15 @@ function nextCard() {
 }
 
 function rateCard(rating) {
-    rateCardSilent(rating);
+    const card = STATE.currentFlashcards[STATE.currentFcIndex];
+    const wordEntry = STATE.words.find(w => w.id === card.id);
+    if (wordEntry) {
+        wordEntry.reviewCount = (wordEntry.reviewCount || 0) + 1;
+        if (rating === 3) wordEntry.mastery = wordEntry.reviewCount >= 3 ? 'mastered' : 'familiar';
+        else if (rating === 2) wordEntry.mastery = 'learning';
+        else wordEntry.mastery = 'new';
+        saveWords();
+    }
     nextCard();
 }
 

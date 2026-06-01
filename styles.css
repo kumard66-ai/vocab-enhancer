@@ -1105,11 +1105,46 @@ body {
     border: 1px solid var(--border);
 }
 
-.flashcard-front h2 {
+.fc-front-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    max-width: 90%;
+}
+
+.fc-front-word {
     font-family: 'Playfair Display', serif;
-    font-size: 2.5rem;
+    font-size: 2.8rem;
     color: var(--primary);
-    margin-bottom: 0.5rem;
+}
+
+.fc-front-phonetic {
+    font-style: italic;
+    color: var(--text-muted);
+    font-size: 1rem;
+}
+
+.fc-front-label {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+
+.fc-front-clue {
+    font-size: 1.3rem;
+    line-height: 1.7;
+    color: var(--text);
+    text-align: center;
+}
+
+.fc-front-hint {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-style: italic;
+    margin-top: 0.5rem;
 }
 
 .flip-hint {
@@ -1123,6 +1158,35 @@ body {
     background: linear-gradient(135deg, var(--primary), #8b5cf6);
     color: white;
     transform: rotateY(180deg);
+    gap: 0.5rem;
+}
+
+.flashcard-back h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.fc-back-phonetic {
+    font-style: italic;
+    opacity: 0.8;
+    font-size: 0.95rem;
+}
+
+.fc-pronounce-btns {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.fc-pronounce-btn {
+    color: white !important;
+    border-color: rgba(255,255,255,0.4) !important;
+    font-size: 0.75rem !important;
+}
+
+.fc-pronounce-btn:hover {
+    background: rgba(255,255,255,0.15) !important;
 }
 
 .pos-badge {
@@ -1132,90 +1196,21 @@ body {
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
 }
 
 .fc-meaning {
     font-size: 1.1rem;
     line-height: 1.5;
+    text-align: center;
+    max-width: 90%;
 }
 
 .fc-example {
-    margin-top: 1rem;
+    margin-top: 0.75rem;
     font-style: italic;
     opacity: 0.8;
     font-size: 0.9rem;
-}
-
-.fc-quiz-card {
-    width: 100%;
-    min-height: 55vh;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-lg);
-    padding: 2.5rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 1.5rem;
-}
-
-.fc-quiz-question {
-    font-size: 1.3rem;
-    line-height: 1.6;
-    color: var(--text);
-    text-align: center;
-    margin-bottom: 2rem;
-    max-width: 600px;
-}
-
-.fc-quiz-options {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-    width: 100%;
-    max-width: 600px;
-}
-
-.fc-quiz-option {
-    padding: 1rem 1.25rem;
-    background: var(--bg);
-    border: 2px solid var(--border);
-    border-radius: var(--radius);
-    cursor: pointer;
-    font-size: 0.95rem;
-    text-align: center;
-    transition: var(--transition);
-}
-
-.fc-quiz-option:hover {
-    border-color: var(--primary);
-    background: var(--primary-light);
-}
-
-.fc-quiz-option.correct {
-    border-color: #16a34a;
-    background: #dcfce7;
-    color: #166534;
-}
-
-.fc-quiz-option.wrong {
-    border-color: #dc2626;
-    background: #fee2e2;
-    color: #991b1b;
-}
-
-.fc-quiz-option.disabled {
-    pointer-events: none;
-    opacity: 0.7;
-}
-
-.fc-quiz-feedback {
-    margin-top: 1.5rem;
-    font-size: 1rem;
-    font-weight: 600;
     text-align: center;
 }
 

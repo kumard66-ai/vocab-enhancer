@@ -469,16 +469,14 @@
                     <div class="fc-control-group">
                         <label>Type:</label>
                         <select id="fcType">
-                            <option value="classic">Classic (Word ↔ Meaning)</option>
-                            <option value="meaning">Word → Meaning</option>
-                            <option value="word">Meaning → Word</option>
-                            <option value="fill">Fill in the Blank</option>
-                            <option value="synonym">Synonym Match</option>
+                            <option value="classic">Word → Meaning</option>
+                            <option value="meaning">Meaning → Word</option>
+                            <option value="fill">Example (blank) → Word</option>
+                            <option value="synonym">Synonym/Antonym → Word</option>
                         </select>
                     </div>
                     <div class="fc-control-group fc-checkboxes">
                         <label><input type="checkbox" id="shuffleCards"> Shuffle</label>
-                        <label><input type="checkbox" id="showExample"> Examples</label>
                     </div>
                     <button id="generateCards" class="btn btn-primary btn-sm">
                         <i class="fas fa-magic"></i> Generate
@@ -494,27 +492,28 @@
                     </div>
                 </div>
 
-                <!-- Classic flip card -->
                 <div class="flashcard" id="flashcard">
                     <div class="flashcard-inner">
-                        <div class="flashcard-front">
-                            <h2 id="fcWord"></h2>
-                            <p id="fcPhonetic" class="phonetic"></p>
-                            <span class="flip-hint">Click to flip</span>
+                        <div class="flashcard-front" id="fcFront">
+                            <div class="fc-front-content" id="fcFrontContent"></div>
+                            <span class="flip-hint"><i class="fas fa-sync-alt"></i> Click to reveal</span>
                         </div>
                         <div class="flashcard-back">
-                            <span id="fcPos" class="pos-badge"></span>
-                            <p id="fcMeaning" class="fc-meaning"></p>
-                            <p id="fcExample" class="fc-example"></p>
+                            <h2 id="fcBackWord"></h2>
+                            <p id="fcBackPhonetic" class="fc-back-phonetic"></p>
+                            <div class="fc-pronounce-btns">
+                                <button class="btn btn-outline btn-sm fc-pronounce-btn" id="fcPronounceUS" title="US pronunciation">
+                                    <i class="fas fa-volume-up"></i> US
+                                </button>
+                                <button class="btn btn-outline btn-sm fc-pronounce-btn" id="fcPronounceUK" title="UK pronunciation">
+                                    <i class="fas fa-volume-up"></i> UK
+                                </button>
+                            </div>
+                            <span id="fcBackPos" class="pos-badge"></span>
+                            <p id="fcBackMeaning" class="fc-meaning"></p>
+                            <p id="fcBackExample" class="fc-example"></p>
                         </div>
                     </div>
-                </div>
-
-                <!-- Quiz-style card -->
-                <div class="fc-quiz-card hidden" id="fcQuizCard">
-                    <div class="fc-quiz-question" id="fcQuizQuestion"></div>
-                    <div class="fc-quiz-options" id="fcQuizOptions"></div>
-                    <div class="fc-quiz-feedback hidden" id="fcQuizFeedback"></div>
                 </div>
 
                 <div class="fc-nav">
