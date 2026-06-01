@@ -2583,6 +2583,9 @@ function initReader() {
     document.getElementById('popupRelookup').addEventListener('click', () => {
         if (STATE._popupCurrentWord) performPopupLookup(STATE._popupCurrentWord);
     });
+    document.getElementById('popupSourceSelect').addEventListener('change', () => {
+        if (STATE._popupCurrentWord) performPopupLookup(STATE._popupCurrentWord);
+    });
 
     // Floating lookup box for PDF mode
     document.getElementById('readerLookupBtn').addEventListener('click', readerLookupFromBox);
