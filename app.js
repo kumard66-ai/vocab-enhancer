@@ -13,7 +13,7 @@ const STATE = {
 // --- Initialize ---
 document.addEventListener('DOMContentLoaded', () => {
     if (typeof pdfjsLib !== 'undefined') {
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'libs/pdf.worker.min.js';
     }
     initTheme();
     initNavigation();
@@ -65,7 +65,31 @@ function initAuth() {
 
 async function signInWithGoogle() {
     try {
-        await auth.signInWithPopup(googleProvider);
+        if (typeof chrome !== 'undefined' && chrome.identity) {
+            // Chrome Extension MV3 requires chrome.identity
+            chrome.identity.getAuthToken({ interactive: true }, async (token) => {
+                if (chrome.runtime.lastError) {
+                    if (chrome.runtime.lastError.message.includes('OAuth2 not granted or revoked') || chrome.runtime.lastError.message.includes('client_id')) {
+                        showToast('Extension needs an OAuth Client ID in manifest.json to sign in.', 'error');
+                        console.error('Missing OAuth client ID. See instructions.', chrome.runtime.lastError);
+                    } else {
+                        showToast('Sign-in failed: ' + chrome.runtime.lastError.message, 'error');
+                    }
+                    return;
+                }
+                
+                try {
+                    const credential = firebase.auth.GoogleAuthProvider.credential(null, token);
+                    await auth.signInWithCredential(credential);
+                } catch (err) {
+                    console.error('Firebase Auth Error:', err);
+                    showToast('Firebase Sign-in failed: ' + err.message, 'error');
+                }
+            });
+        } else {
+            // Fallback for regular web
+            await auth.signInWithPopup(googleProvider);
+        }
     } catch (err) {
         if (err.code !== 'auth/popup-closed-by-user') {
             showToast('Sign-in failed: ' + err.message, 'error');
@@ -3332,3 +3356,29 @@ function escapeHtml(text) {
     div.textContent = text;
     return div.innerHTML;
 }
+
+// --- Chrome Extension Integration ---
+if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+        if (request.action === 'lookup_word' && request.word) {
+            document.getElementById('wordInput').value = request.word;
+            showSection('lookup');
+            searchWord(request.word);
+            sendResponse({ status: 'ok' });
+        }
+        return true;
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        chrome.storage.local.get(['pendingLookupWord'], (result) => {
+            if (result.pendingLookupWord) {
+                document.getElementById('wordInput').value = result.pendingLookupWord;
+                showSection('lookup');
+                searchWord(result.pendingLookupWord);
+                chrome.storage.local.remove('pendingLookupWord');
+            }
+        });
+    }
+});

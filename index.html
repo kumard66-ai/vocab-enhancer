@@ -50,12 +50,15 @@
                     <div class="sync-status" id="syncStatus" title="Synced">
                         <i class="fas fa-cloud"></i>
                     </div>
-                    <button id="logoutBtn" class="btn-icon" title="Sign out">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </button>
-                </div>
-            </div>
-            <button class="theme-toggle" id="themeToggle" title="Toggle dark mode">
+                      <button id="logoutBtn" class="btn-icon" title="Sign out">
+                          <i class="fas fa-sign-out-alt"></i>
+                      </button>
+                  </div>
+              </div>
+              <a href="vocab-enhancer-extension.zip" download id="downloadExtBtn" class="btn btn-primary btn-sm" style="margin-left: 10px; margin-right: 10px; text-decoration: none;" title="Download as Chrome Extension">
+                  <i class="fas fa-download"></i> Extension
+              </a>
+              <button class="theme-toggle" id="themeToggle" title="Toggle dark mode">
                 <i class="fas fa-moon"></i>
             </button>
         </div>
@@ -690,15 +693,21 @@
     <div id="toast" class="toast hidden"></div>
 
     <!-- Scripts -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="libs/xlsx.full.min.js"></script>
+    <script src="libs/chart.umd.min.js"></script>
+    <script src="libs/mammoth.browser.min.js"></script>
+    <script src="libs/pdf.min.js"></script>
     <!-- Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="libs/firebase-app-compat.js"></script>
+    <script src="libs/firebase-auth-compat.js"></script>
+    <script src="libs/firebase-firestore-compat.js"></script>
     <script src="firebase-config.js"></script>
     <script src="app.js"></script>
+    <script>
+        if (typeof chrome !== 'undefined' && chrome.extension) {
+            var dlBtn = document.getElementById('downloadExtBtn');
+            if (dlBtn) dlBtn.style.display = 'none';
+        }
+    </script>
 </body>
 </html>
