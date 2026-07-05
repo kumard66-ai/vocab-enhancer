@@ -709,7 +709,7 @@
     <script src="firebase-config.js"></script>
     <script src="app.js"></script>
     <script>
-        if (typeof chrome !== 'undefined' && chrome.extension) {
+        if (window.location.protocol === 'chrome-extension:') {
             var dlBtn = document.getElementById('downloadExtBtn');
             if (dlBtn) dlBtn.style.display = 'none';
         }
