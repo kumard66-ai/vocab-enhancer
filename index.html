@@ -11,61 +11,65 @@
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="navbar">
-        <div class="nav-brand">
-            <i class="fas fa-book-open"></i>
-            <span>VocabVault</span>
-        </div>
-        <div class="nav-links">
-            <a href="#lookup" class="nav-link active" data-section="lookup">
-                <i class="fas fa-search"></i> Lookup
-            </a>
-            <a href="#history" class="nav-link" data-section="history">
-                <i class="fas fa-table"></i> History<span id="navHistoryCount" class="nav-badge"></span>
-            </a>
-            <a href="#reader" class="nav-link" data-section="reader">
-                <i class="fas fa-book-reader"></i> Reader
-            </a>
-            <a href="#upload" class="nav-link" data-section="upload">
-                <i class="fas fa-file-upload"></i> Upload
-            </a>
-            <a href="#flashcards" class="nav-link" data-section="flashcards">
-                <i class="fas fa-clone"></i> Flashcards
-            </a>
-            <a href="#quiz" class="nav-link" data-section="quiz">
-                <i class="fas fa-brain"></i> Quiz
-            </a>
-            <a href="#stats" class="nav-link" data-section="stats">
-                <i class="fas fa-chart-bar"></i> Stats<span id="navMemoryBadge" class="nav-badge memory-badge"></span>
-            </a>
-        </div>
-        <div class="nav-right">
-            <div id="userArea" class="user-area">
-                <button id="loginBtn" class="btn btn-outline btn-sm">
-                    <i class="fab fa-google"></i> Sign In
-                </button>
-                <div id="userProfile" class="user-profile hidden">
-                    <img id="userAvatar" class="user-avatar" src="" alt="">
-                    <span id="userName" class="user-name"></span>
-                    <div class="sync-status" id="syncStatus" title="Synced">
-                        <i class="fas fa-cloud"></i>
+    <nav class="navbar" style="height: auto; flex-direction: column; padding: 0; align-items: stretch;">
+        <div class="nav-top-row" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; border-bottom: 1px solid var(--border);">
+            <div class="nav-brand">
+                <i class="fas fa-book-open"></i>
+                <span>VocabVault</span>
+            </div>
+            <div class="nav-right" style="margin-left: 0;">
+                <div id="userArea" class="user-area">
+                    <button id="loginBtn" class="btn btn-outline btn-sm">
+                        <i class="fab fa-google"></i> Sign In
+                    </button>
+                    <div id="userProfile" class="user-profile hidden">
+                        <img id="userAvatar" class="user-avatar" src="" alt="">
+                        <span id="userName" class="user-name"></span>
+                        <div class="sync-status" id="syncStatus" title="Synced">
+                            <i class="fas fa-cloud"></i>
+                        </div>
+                        <button id="logoutBtn" class="btn-icon" title="Sign out">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </button>
                     </div>
-                      <button id="logoutBtn" class="btn-icon" title="Sign out">
-                          <i class="fas fa-sign-out-alt"></i>
-                      </button>
-                  </div>
-              </div>
-              <a href="vocab-enhancer-extension.zip" download id="downloadExtBtn" class="btn btn-primary btn-sm" style="margin-left: 10px; margin-right: 10px; text-decoration: none;" title="Download as Chrome Extension">
-                  <i class="fas fa-download"></i> Extension
-              </a>
-              <button class="theme-toggle" id="themeToggle" title="Toggle dark mode">
-                <i class="fas fa-moon"></i>
-            </button>
+                </div>
+                <a href="vocab-enhancer-extension.zip" download id="downloadExtBtn" class="btn btn-primary btn-sm" style="margin-left: 10px; margin-right: 10px; text-decoration: none;" title="Download as Chrome Extension">
+                    <i class="fas fa-download"></i> Extension
+                </a>
+                <button class="theme-toggle" id="themeToggle" title="Toggle dark mode">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+        </div>
+        <div class="nav-bottom-row" style="display: flex; overflow-x: auto; padding: 0;">
+            <div class="nav-links" style="margin-left: 0; width: 100%; justify-content: center; border-bottom: none;">
+                <a href="#lookup" class="nav-link active" data-section="lookup">
+                    <i class="fas fa-search"></i> Lookup
+                </a>
+                <a href="#history" class="nav-link" data-section="history">
+                    <i class="fas fa-table"></i> History<span id="navHistoryCount" class="nav-badge"></span>
+                </a>
+                <a href="#reader" class="nav-link" data-section="reader">
+                    <i class="fas fa-book-reader"></i> Reader
+                </a>
+                <a href="#upload" class="nav-link" data-section="upload">
+                    <i class="fas fa-file-upload"></i> Upload
+                </a>
+                <a href="#flashcards" class="nav-link" data-section="flashcards">
+                    <i class="fas fa-clone"></i> Flashcards
+                </a>
+                <a href="#quiz" class="nav-link" data-section="quiz">
+                    <i class="fas fa-brain"></i> Quiz
+                </a>
+                <a href="#stats" class="nav-link" data-section="stats">
+                    <i class="fas fa-chart-bar"></i> Stats<span id="navMemoryBadge" class="nav-badge memory-badge"></span>
+                </a>
+            </div>
         </div>
     </nav>
 
     <!-- Main Content -->
-    <main class="container">
+    <main class="container" style="padding-top: 120px !important;">
         <!-- Lookup Section -->
         <section id="lookup" class="section active">
             <div class="section-header">
