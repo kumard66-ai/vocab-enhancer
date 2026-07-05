@@ -28,7 +28,7 @@
     "default_title": "Open Vocab Enhancer Side Panel"
   },
   "oauth2": {
-    "client_id": "481494691712-gd5kgsiatqtki0dc66q5fadmbt9vr419.apps.googleusercontent.com",
+    "client_id": "481494691712-4fnn4fugec57lan8kjll3vn94ebhjssq.apps.googleusercontent.com",
     "scopes": [
       "https://www.googleapis.com/auth/userinfo.email",
       "https://www.googleapis.com/auth/userinfo.profile"
