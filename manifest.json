@@ -28,7 +28,11 @@
     "default_title": "Open Vocab Enhancer Side Panel"
   },
   "oauth2": {
+<<<<<<< Updated upstream
     "client_id": "481494691712-gd5kgsiatqtki0dc66q5fadmbt9vr419.apps.googleusercontent",
+=======
+    "client_id": "481494691712-gd5kgsiatqtki0dc66q5fadmbt9vr419.apps.googleusercontent.com",
+>>>>>>> Stashed changes
     "scopes": [
       "https://www.googleapis.com/auth/userinfo.email",
       "https://www.googleapis.com/auth/userinfo.profile"
