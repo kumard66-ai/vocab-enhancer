@@ -1078,7 +1078,8 @@ body {
 .flashcard {
     width: 100%;
     max-width: 100%;
-    height: 55vh;
+    height: 65vh;
+    min-height: 400px;
     perspective: 1000px;
     cursor: pointer;
     margin-bottom: 1.5rem;
@@ -1103,11 +1104,20 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     padding: 2rem;
     border-radius: var(--radius);
     box-shadow: var(--shadow-lg);
     text-align: center;
+    overflow-y: auto;
+}
+
+/* Vertical centering for small content */
+.flashcard-front > *:first-child, .flashcard-back > *:first-child {
+    margin-top: auto;
+}
+.flashcard-front > *:last-child, .flashcard-back > *:last-child {
+    margin-bottom: auto;
 }
 
 .flashcard-front {
@@ -2072,7 +2082,7 @@ body {
     }
 
     .flashcard {
-        height: 250px;
+        height: 350px;
     }
 
     .word-header {
@@ -2092,6 +2102,47 @@ body {
     .flashcard-front h2 {
         font-size: 1.75rem;
     }
+}
+
+/* THEMES */
+.flashcard.theme-white .flashcard-front,
+.flashcard.theme-white .flashcard-back {
+    background: #ffffff;
+    color: #000000;
+}
+.flashcard.theme-white .fc-back-phonetic {
+    color: #555555;
+}
+.flashcard.theme-white .fc-pronounce-btn {
+    color: #000 !important;
+    border-color: rgba(0,0,0,0.4) !important;
+}
+.flashcard.theme-white .fc-pronounce-btn:hover {
+    background: rgba(0,0,0,0.1) !important;
+}
+.flashcard.theme-white .pos-badge {
+    background: rgba(0,0,0,0.1);
+    color: #000;
+}
+.flashcard.theme-dark .flashcard-front,
+.flashcard.theme-dark .flashcard-back {
+    background: #1e1e2e;
+    color: #ffffff;
+    border-color: #333344;
+}
+.flashcard.theme-dark .fc-back-phonetic {
+    color: #cccccc;
+}
+.flashcard.theme-dark .fc-pronounce-btn {
+    color: #fff !important;
+    border-color: rgba(255,255,255,0.4) !important;
+}
+.flashcard.theme-dark .fc-pronounce-btn:hover {
+    background: rgba(255,255,255,0.1) !important;
+}
+.flashcard.theme-dark .pos-badge {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
 }
 
 /* ===== Autocomplete ===== */

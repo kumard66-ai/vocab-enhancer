@@ -67,8 +67,15 @@ function showCard(index) {
     const progress = ((index + 1) / STATE.currentFlashcards.length) * 100;
     document.getElementById('fcProgressFill').style.width = progress + '%';
 
+    const fcColor = document.getElementById('fcColor') ? document.getElementById('fcColor').value : 'default';
+    const flashcardEl = document.getElementById('flashcard');
+    flashcardEl.className = 'flashcard'; // Reset classes
+    if (fcColor !== 'default') {
+        flashcardEl.classList.add(`theme-${fcColor}`);
+    }
+
     // Reset flip
-    document.getElementById('flashcard').classList.remove('flipped');
+    flashcardEl.classList.remove('flipped');
 
     const fcType = STATE.fcType || 'classic';
     const frontContent = document.getElementById('fcFrontContent');
@@ -184,4 +191,16 @@ function rateCard(rating) {
     }
     nextCard();
 }
+
+function updateFlashcardTheme() {
+    const fcColor = document.getElementById('fcColor') ? document.getElementById('fcColor').value : 'default';
+    const flashcardEl = document.getElementById('flashcard');
+    flashcardEl.className = 'flashcard'; // Reset classes
+    if (fcColor !== 'default') {
+        flashcardEl.classList.add(`theme-${fcColor}`);
+    }
+}
+
+// Make it globally available for the inline onchange handler
+window.updateFlashcardTheme = updateFlashcardTheme;
 
