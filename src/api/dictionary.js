@@ -1214,7 +1214,10 @@ Related Topics: [topic 1], [topic 2], [topic 3]`;
         let result = '';
 
         if (provider.startsWith('gemini')) {
-            const modelName = provider === 'gemini' ? 'gemini-3.6-flash' : provider;
+            let modelName = 'gemini-1.5-flash';
+            if (provider.includes('lite')) {
+                modelName = 'gemini-1.5-flash-8b';
+            }
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
             const response = await fetch(apiUrl, {
                 method: 'POST',
