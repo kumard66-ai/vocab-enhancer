@@ -49,6 +49,7 @@ export function initSearch() {
             customUrl: document.getElementById('llmCustomUrl').value
         };
         saveStateToLocal();
+
         showToast('AI Settings saved successfully');
         closeLlmModal();
     });
@@ -866,18 +867,13 @@ function displayWordResult(data) {
         document.getElementById('aiMnemonic').textContent = 'Generating...';
         document.getElementById('aiExamples').innerHTML = '';
 
-        fetch('/api/ai/generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                provider: STATE.llmSettings.provider,
-                apiKey: STATE.llmSettings.apiKey,
-                customUrl: STATE.llmSettings.customUrl,
-                word: data.word,
-                meanings: data.meanings
-            })
+        generateAIContext({
+            provider: STATE.llmSettings.provider,
+            apiKey: STATE.llmSettings.apiKey,
+            customUrl: STATE.llmSettings.customUrl,
+            word: data.word,
+            meanings: data.meanings
         })
-        .then(res => res.json())
         .then(aiData => {
             document.getElementById('aiLoadingSpinner').classList.add('hidden');
             if (aiData.error) {
@@ -1187,6 +1183,126 @@ function saveCurrentWord() {
     showToast(`"${entry.word}" saved to history with AI context!`, 'success');
 }
 
+async function generateAIContext(params) {
+    const { provider, apiKey, customUrl, word, meanings } = params;
+    
+    if (!provider || !apiKey || !word) {
+        return { error: 'Missing required parameters (provider, apiKey, word)' };
+    }
+
+    const meaningsText = meanings.map(m => m.definitions[0]?.definition).join('; ');
+    const prompt = `I am learning the English word "${word}". Here are its definitions from the dictionary: ${meaningsText}.
+Please provide the following to help me learn this word deeply:
+1. A clever mnemonic or memory hook to help me remember this word.
+2. A clear and concise meaning or definition of the word.
+3. Two unique, natural example sentences using the word.
+4. 2 to 3 common phrases, idioms, or collocations using this word.
+5. A list of 3 synonyms for the word.
+6. A list of 3 antonyms for the word.
+7. A list of 3 to 5 related topics, fields, or categories the word belongs to.
+
+Format your response exactly like this:
+Mnemonic: [your mnemonic here]
+Meaning: [your meaning here]
+Examples: [example 1] | [example 2]
+Phrases: [phrase 1], [phrase 2], [phrase 3]
+Synonyms: [syn 1], [syn 2], [syn 3]
+Antonyms: [ant 1], [ant 2], [ant 3]
+Related Topics: [topic 1], [topic 2], [topic 3]`;
+
+    try {
+        let result = '';
+
+        if (provider.startsWith('gemini')) {
+            const modelName = provider === 'gemini' ? 'gemini-3.6-flash' : provider;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }]
+                })
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error?.message || 'Gemini API Error');
+            result = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+        } else if (provider === 'openai') {
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-3.5-turbo',
+                    messages: [{ role: 'user', content: prompt }]
+                })
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error?.message || 'OpenAI API Error');
+            result = data.choices?.[0]?.message?.content || '';
+
+        } else if (provider === 'custom') {
+            const url = customUrl || 'http://localhost:11434/v1/chat/completions';
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-3.5-turbo',
+                    messages: [{ role: 'user', content: prompt }]
+                })
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error?.message || 'Custom API Error');
+            result = data.choices?.[0]?.message?.content || '';
+        } else {
+            return { error: 'Unknown provider' };
+        }
+
+        const lines = result.split('\n');
+        let mnemonic = '';
+        let meaning = '';
+        let phrases = '';
+        let synonyms = '';
+        let antonyms = '';
+        let relatedTopics = '';
+        let examples = [];
+
+        for (const line of lines) {
+            if (line.toLowerCase().startsWith('mnemonic:')) {
+                mnemonic = line.substring(9).trim();
+            } else if (line.toLowerCase().startsWith('meaning:')) {
+                meaning = line.substring(8).trim();
+            } else if (line.toLowerCase().startsWith('phrases:')) {
+                phrases = line.substring(8).trim();
+            } else if (line.toLowerCase().startsWith('synonyms:')) {
+                synonyms = line.substring(9).trim();
+            } else if (line.toLowerCase().startsWith('antonyms:')) {
+                antonyms = line.substring(9).trim();
+            } else if (line.toLowerCase().startsWith('related topics:')) {
+                relatedTopics = line.substring(15).trim();
+            } else if (line.toLowerCase().startsWith('examples:')) {
+                const exString = line.substring(9).trim();
+                examples = exString.split('|').map(e => e.trim()).filter(e => e.length > 0);
+            } else if (line.toLowerCase().startsWith('example')) {
+                const parts = line.split(':');
+                if (parts.length > 1) {
+                    examples.push(parts.slice(1).join(':').trim());
+                }
+            }
+        }
+
+        return { mnemonic, meaning, phrases, synonyms, antonyms, relatedTopics, examples };
+
+    } catch (error) {
+        console.error('AI error:', error);
+        return { error: error.message };
+    }
+}
 
 export {
     searchWord,
