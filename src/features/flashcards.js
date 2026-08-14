@@ -92,6 +92,16 @@ function showCard(index) {
             <p class="fc-front-clue">"${blanked}"</p>
             <p class="fc-front-hint">(${card.meaning})</p>
         `;
+    } else if (fcType === 'meaning_example_fill') {
+        const example = card.example || 'No example available.';
+        const blankedExample = example.replace(new RegExp(card.word, 'gi'), '________');
+        const meaning = card.meaning || 'No meaning available.';
+        const blankedMeaning = meaning.replace(new RegExp(card.word, 'gi'), '________');
+        frontContent.innerHTML = `
+            <p class="fc-front-label" style="margin-bottom: 1rem;">What word matches this?</p>
+            <p class="fc-front-clue" style="font-size: 1.1rem; line-height: 1.5; text-align: left;"><strong>Meaning:</strong> ${blankedMeaning}</p>
+            <p class="fc-front-clue" style="font-style: italic; margin-top: 10px; text-align: left;"><strong>Example:</strong> "${blankedExample}"</p>
+        `;
     } else if (fcType === 'synonym') {
         const syns = (card.synonyms || []).slice(0, 3).join(', ') || 'N/A';
         const ants = (card.antonyms || []).slice(0, 3).join(', ') || 'N/A';
@@ -109,6 +119,22 @@ function showCard(index) {
     document.getElementById('fcBackPos').textContent = card.partOfSpeech;
     document.getElementById('fcBackMeaning').textContent = card.meaning;
     document.getElementById('fcBackExample').textContent = card.example || '';
+
+    // Extra information for the back of the card
+    const extraContainer = document.getElementById('fcBackExtra');
+    if (extraContainer) {
+        let extraHtml = '';
+        if (card.aiMnemonic) extraHtml += `<p style="margin-bottom: 5px;"><strong>🧠 Mnemonic:</strong> ${card.aiMnemonic}</p>`;
+        if (card.aiMeaning) extraHtml += `<p style="margin-bottom: 5px;"><strong>📖 AI Meaning:</strong> ${card.aiMeaning}</p>`;
+        if (card.synonyms && card.synonyms.length) extraHtml += `<p style="margin-bottom: 5px;"><strong>🔗 Synonyms:</strong> ${card.synonyms.join(', ')}</p>`;
+        if (card.antonyms && card.antonyms.length) extraHtml += `<p style="margin-bottom: 5px;"><strong>🚫 Antonyms:</strong> ${card.antonyms.join(', ')}</p>`;
+        if (card.phrases && card.phrases.length) extraHtml += `<p style="margin-bottom: 5px;"><strong>💬 Phrases:</strong> ${card.phrases.join(', ')}</p>`;
+        if (card.aiRelatedTopics) extraHtml += `<p style="margin-bottom: 5px;"><strong>🏷️ Topics:</strong> ${card.aiRelatedTopics}</p>`;
+        if (card.source) extraHtml += `<p style="margin-bottom: 5px;"><strong>🌐 Source:</strong> ${card.source}</p>`;
+        
+        extraContainer.innerHTML = extraHtml;
+        extraContainer.style.display = extraHtml ? 'block' : 'none';
+    }
 
     // Store audio for pronunciation
     STATE._fcCurrentAudio = card.audio || '';
