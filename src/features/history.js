@@ -1,6 +1,7 @@
 import { STATE, saveStateToLocal, saveWords } from '../state.js';
 import { showToast, formatDate, truncate } from '../utils.js';
 import { searchWord, initAutocomplete, getSourceUrl, getSourceLabel } from '../api/dictionary.js';
+import { saveImage, getImage, deleteImage } from '../services/imageStore.js';
 
 // --- History ---
 export function updateHistoryStats() {
@@ -53,6 +54,24 @@ export function initHistory() {
     document.getElementById('importExcelFile').addEventListener('change', importExcel);
     const copyExcelBtn = document.getElementById('copyExcel');
     if (copyExcelBtn) copyExcelBtn.addEventListener('click', copyToExcel);
+
+    // Edit Image Preview Logic
+    const editImageInput = document.getElementById('editImageInput');
+    if (editImageInput) {
+        editImageInput.addEventListener('change', function(e) {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    const imgPreview = document.getElementById('editImagePreview');
+                    if (imgPreview) {
+                        imgPreview.src = evt.target.result;
+                        imgPreview.style.display = 'block';
+                    }
+                };
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+    }
 
     document.getElementById('clearHistory').addEventListener('click', () => {
         if (confirm('Are you sure you want to clear all history?')) {
@@ -261,6 +280,21 @@ function openEditModal(id) {
     document.getElementById('editPhrases').value = (word.phrases || []).join(', ');
     document.getElementById('editSynonyms').value = (word.synonyms || []).join(', ');
     document.getElementById('editAntonyms').value = (word.antonyms || []).join(', ');
+    
+    // Handle Image
+    document.getElementById('editImageInput').value = '';
+    const imgPreview = document.getElementById('editImagePreview');
+    imgPreview.style.display = 'none';
+    imgPreview.src = '';
+    
+    // Fetch from IndexedDB
+    getImage(id).then(base64 => {
+        if (base64) {
+            imgPreview.src = base64;
+            imgPreview.style.display = 'block';
+        }
+    }).catch(console.error);
+
     document.getElementById('editWordModal').style.display = 'flex';
 }
 
@@ -279,6 +313,22 @@ function saveEditWord() {
     word.phrases = document.getElementById('editPhrases').value.split(',').map(s => s.trim()).filter(Boolean);
     word.synonyms = document.getElementById('editSynonyms').value.split(',').map(s => s.trim()).filter(Boolean);
     word.antonyms = document.getElementById('editAntonyms').value.split(',').map(s => s.trim()).filter(Boolean);
+    
+    // Handle new image upload
+    const fileInput = document.getElementById('editImageInput');
+    if (fileInput.files && fileInput.files[0]) {
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            saveImage(word.id, e.target.result).then(() => {
+                showToast('Image saved successfully', 'success');
+                // Refresh current flashcard if visible
+                if (window.renderHistory) renderHistory();
+            });
+        };
+        reader.readAsDataURL(file);
+    }
+
     saveWords();
     closeEditModal();
     renderHistory();

@@ -42,8 +42,24 @@ function generateFlashcards() {
     const to = parseInt(document.getElementById('fcTo').value) || STATE.words.length;
     const shuffle = document.getElementById('shuffleCards').checked;
     const fcType = document.getElementById('fcType').value;
+    const filter = document.getElementById('fcMasteryFilter') ? document.getElementById('fcMasteryFilter').value : 'all';
 
-    let cards = STATE.words.slice(from - 1, to);
+    let filteredWords = STATE.words;
+    if (filter !== 'all') {
+        filteredWords = STATE.words.filter(w => {
+            const mastery = w.mastery || 'new';
+            return mastery === filter;
+        });
+    }
+
+    if (filteredWords.length === 0) {
+        showToast('No words found for this filter.', 'warning');
+        document.getElementById('flashcardArea').classList.add('hidden');
+        document.getElementById('fcEmpty').classList.remove('hidden');
+        return;
+    }
+
+    let cards = filteredWords.slice(from - 1, to);
     if (shuffle) cards = shuffleArray([...cards]);
 
     STATE.currentFlashcards = cards;
@@ -146,6 +162,28 @@ function showCard(index) {
     // Store audio for pronunciation
     STATE._fcCurrentAudio = card.audio || '';
     STATE._fcCurrentWord = card.word;
+
+    // Remove any previously injected images
+    const oldImg = document.getElementById('fcInjectedImg');
+    if (oldImg) oldImg.remove();
+
+    // Render image if present
+    import('../services/imageStore.js').then(({ getImage }) => {
+        getImage(card.id).then(base64 => {
+            if (base64) {
+                // If it's the classic mode (Word -> Meaning), put it on the back, else put it on the front
+                if (fcType === 'classic') {
+                    // Put on the back, above the extra container
+                    const imgHtml = `<img id="fcInjectedImg" src="${base64}" style="max-height: 150px; border-radius: 8px; margin-bottom: 10px; margin-top: 10px;" />`;
+                    document.getElementById('fcBackExtra').insertAdjacentHTML('beforebegin', imgHtml);
+                } else {
+                    // Put on the front
+                    const imgHtml = `<img id="fcInjectedImg" src="${base64}" style="max-height: 150px; border-radius: 8px; margin-top: 15px;" />`;
+                    frontContent.insertAdjacentHTML('beforeend', imgHtml);
+                }
+            }
+        });
+    });
 }
 
 function fcPronounce(accent) {
@@ -201,6 +239,85 @@ function updateFlashcardTheme() {
     }
 }
 
-// Make it globally available for the inline onchange handler
+function toggleFullscreenFlashcard(e) {
+    if (e) e.stopPropagation();
+    const fc = document.getElementById('flashcard');
+    const overlay = document.getElementById('fcOverlay');
+    fc.classList.toggle('flashcard-fullscreen');
+    overlay.classList.toggle('active');
+}
+
+function fcLookupWord(e) {
+    e.stopPropagation();
+    const card = STATE.currentFlashcards[STATE.currentFcIndex];
+    if (card) {
+        if (fcOverlay.classList.contains('active')) toggleFullscreenFlashcard();
+        document.querySelector('.nav-links a[data-tab="search"]').click();
+        document.getElementById('searchInput').value = card.word;
+        document.getElementById('searchBtn').click();
+    }
+}
+
+function fcEditWord(e) {
+    e.stopPropagation();
+    const card = STATE.currentFlashcards[STATE.currentFcIndex];
+    if (card) {
+        if (window.openEditModal) {
+            window.openEditModal(card.id);
+        }
+    }
+}
+
+function fcDeleteWord(e) {
+    e.stopPropagation();
+    const card = STATE.currentFlashcards[STATE.currentFcIndex];
+    if (card && confirm(`Are you sure you want to delete "${card.word}"?`)) {
+        const idx = STATE.words.findIndex(w => w.id === card.id);
+        if (idx !== -1) {
+            STATE.words.splice(idx, 1);
+            saveWords();
+            STATE.currentFlashcards.splice(STATE.currentFcIndex, 1);
+            if (STATE.currentFlashcards.length === 0) {
+                document.getElementById('flashcardArea').classList.add('hidden');
+                document.getElementById('fcEmpty').classList.remove('hidden');
+            } else {
+                if (STATE.currentFcIndex >= STATE.currentFlashcards.length) {
+                    STATE.currentFcIndex = STATE.currentFlashcards.length - 1;
+                }
+                showCard(STATE.currentFcIndex);
+            }
+        }
+    }
+}
+
+// Make globally available for inline handlers
 window.updateFlashcardTheme = updateFlashcardTheme;
+window.toggleFullscreenFlashcard = toggleFullscreenFlashcard;
+window.fcLookupWord = fcLookupWord;
+window.fcEditWord = fcEditWord;
+window.fcDeleteWord = fcDeleteWord;
+
+// Keyboard Shortcuts
+document.addEventListener('keydown', (e) => {
+    const fcArea = document.getElementById('flashcardArea');
+    if (!fcArea || fcArea.classList.contains('hidden')) return;
+    
+    // Ignore if typing in an input/textarea (like edit modal)
+    if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+
+    if (e.code === 'Space') {
+        e.preventDefault();
+        flipCard();
+    } else if (e.code === 'ArrowLeft') {
+        prevCard();
+    } else if (e.code === 'ArrowRight') {
+        nextCard();
+    } else if (e.code === 'Digit1' || e.code === 'Numpad1') {
+        rateCard(1); // Don't Know
+    } else if (e.code === 'Digit2' || e.code === 'Numpad2') {
+        rateCard(2); // Learning
+    } else if (e.code === 'Digit3' || e.code === 'Numpad3') {
+        rateCard(3); // Mastered
+    }
+});
 

@@ -1083,6 +1083,31 @@ body {
     perspective: 1000px;
     cursor: pointer;
     margin-bottom: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+/* Fullscreen Flashcard Mode */
+.flashcard.flashcard-fullscreen {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 95vw !important;
+    height: 95vh !important;
+    max-width: 1200px;
+    z-index: 9999;
+    margin: 0;
+}
+.flashcard-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 9998;
+    display: none;
+    backdrop-filter: blur(4px);
+}
+.flashcard-overlay.active {
+    display: block;
 }
 
 .flashcard-inner {
@@ -1179,11 +1204,15 @@ body {
     color: var(--text-muted);
 }
 
+/* Default Theme Back */
 .flashcard-back {
     background: linear-gradient(135deg, var(--primary), #8b5cf6);
-    color: white;
+    color: #ffffff;
     transform: rotateY(180deg);
     gap: 0.5rem;
+}
+.flashcard-back * {
+    color: inherit; /* Enforce white color inheritance on default back */
 }
 
 .flashcard-back h2 {
