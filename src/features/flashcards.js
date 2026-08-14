@@ -131,13 +131,13 @@ function showCard(index) {
     const extraContainer = document.getElementById('fcBackExtra');
     if (extraContainer) {
         let extraHtml = '';
-        if (card.aiMnemonic) extraHtml += `<p style="margin-bottom: 5px;"><strong>🧠 Mnemonic:</strong> ${card.aiMnemonic}</p>`;
-        if (card.aiMeaning) extraHtml += `<p style="margin-bottom: 5px;"><strong>📖 AI Meaning:</strong> ${card.aiMeaning}</p>`;
-        if (card.synonyms && card.synonyms.length) extraHtml += `<p style="margin-bottom: 5px;"><strong>🔗 Synonyms:</strong> ${card.synonyms.join(', ')}</p>`;
-        if (card.antonyms && card.antonyms.length) extraHtml += `<p style="margin-bottom: 5px;"><strong>🚫 Antonyms:</strong> ${card.antonyms.join(', ')}</p>`;
-        if (card.phrases && card.phrases.length) extraHtml += `<p style="margin-bottom: 5px;"><strong>💬 Phrases:</strong> ${card.phrases.join(', ')}</p>`;
-        if (card.aiRelatedTopics) extraHtml += `<p style="margin-bottom: 5px;"><strong>🏷️ Topics:</strong> ${card.aiRelatedTopics}</p>`;
-        if (card.source) extraHtml += `<p style="margin-bottom: 5px;"><strong>🌐 Source:</strong> ${card.source}</p>`;
+        if (card.aiMnemonic) extraHtml += `<div class="fc-extra-item fc-extra-mnemonic"><strong>🧠 Mnemonic:</strong> ${card.aiMnemonic}</div>`;
+        if (card.aiMeaning) extraHtml += `<div class="fc-extra-item fc-extra-meaning"><strong>📖 AI Meaning:</strong> ${card.aiMeaning}</div>`;
+        if (card.synonyms && card.synonyms.length) extraHtml += `<div class="fc-extra-item fc-extra-synonyms"><strong>🔗 Synonyms:</strong> ${card.synonyms.join(', ')}</div>`;
+        if (card.antonyms && card.antonyms.length) extraHtml += `<div class="fc-extra-item fc-extra-antonyms"><strong>🚫 Antonyms:</strong> ${card.antonyms.join(', ')}</div>`;
+        if (card.phrases && card.phrases.length) extraHtml += `<div class="fc-extra-item fc-extra-phrases"><strong>💬 Phrases:</strong> ${card.phrases.join(', ')}</div>`;
+        if (card.aiRelatedTopics) extraHtml += `<div class="fc-extra-item fc-extra-topics"><strong>🏷️ Topics:</strong> ${card.aiRelatedTopics}</div>`;
+        if (card.source) extraHtml += `<div class="fc-extra-item fc-extra-source"><strong>🌐 Source:</strong> ${card.source}</div>`;
         
         extraContainer.innerHTML = extraHtml;
         extraContainer.style.display = extraHtml ? 'block' : 'none';

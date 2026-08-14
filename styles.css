@@ -1143,13 +1143,15 @@ body {
 
 .fc-front-phonetic {
     font-style: italic;
-    color: var(--text-muted);
+    color: inherit;
+    opacity: 0.7;
     font-size: 1rem;
 }
 
 .fc-front-label {
     font-size: 0.9rem;
-    color: var(--text-muted);
+    color: inherit;
+    opacity: 0.6;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     font-weight: 600;
@@ -1158,13 +1160,14 @@ body {
 .fc-front-clue {
     font-size: 1.3rem;
     line-height: 1.7;
-    color: var(--text);
+    color: inherit;
     text-align: center;
 }
 
 .fc-front-hint {
     font-size: 0.9rem;
-    color: var(--text-secondary);
+    color: inherit;
+    opacity: 0.7;
     font-style: italic;
     margin-top: 0.5rem;
 }
@@ -1235,6 +1238,32 @@ body {
     font-size: 0.9rem;
     text-align: center;
 }
+
+/* Beautiful styling for the extra info categories */
+.fc-extra-item {
+    margin-bottom: 8px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-left: 4px solid transparent;
+}
+.fc-extra-item strong {
+    font-weight: 600;
+    opacity: 0.9;
+    letter-spacing: 0.5px;
+    margin-right: 5px;
+}
+.theme-white .fc-extra-item {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.fc-extra-mnemonic { border-left-color: #f59e0b; }
+.fc-extra-meaning { border-left-color: #3b82f6; }
+.fc-extra-synonyms { border-left-color: #10b981; }
+.fc-extra-antonyms { border-left-color: #ef4444; }
+.fc-extra-phrases { border-left-color: #8b5cf6; }
+.fc-extra-topics { border-left-color: #ec4899; }
+.fc-extra-source { border-left-color: #64748b; font-size: 0.8em; }
 
 .fc-nav {
     display: flex;
