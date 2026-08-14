@@ -66,6 +66,14 @@ function generateFlashcards() {
     STATE.currentFcIndex = 0;
     STATE.fcType = fcType;
 
+    // Populate Jump dropdown
+    const jumpSelect = document.getElementById('fcJumpToCard');
+    if (jumpSelect) {
+        jumpSelect.innerHTML = cards.map((card, i) => 
+            `<option value="${i}">${i + 1}. ${card.word}</option>`
+        ).join('');
+    }
+
     document.getElementById('flashcardArea').classList.remove('hidden');
     document.getElementById('fcEmpty').classList.add('hidden');
     document.getElementById('fcTotal').textContent = cards.length;
@@ -162,6 +170,10 @@ function showCard(index) {
     // Store audio for pronunciation
     STATE._fcCurrentAudio = card.audio || '';
     STATE._fcCurrentWord = card.word;
+
+    // Update jump dropdown value
+    const jumpSelect = document.getElementById('fcJumpToCard');
+    if (jumpSelect) jumpSelect.value = index;
 
     // Remove any previously injected images
     const oldImg = document.getElementById('fcInjectedImg');
@@ -302,10 +314,10 @@ document.addEventListener('keydown', (e) => {
     const fcArea = document.getElementById('flashcardArea');
     if (!fcArea || fcArea.classList.contains('hidden')) return;
     
-    // Ignore if typing in an input/textarea (like edit modal)
-    if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+    // Ignore if typing in an input/textarea (like edit modal or the jump to select)
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
 
-    if (e.code === 'Space') {
+    if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'ArrowDown') {
         e.preventDefault();
         flipCard();
     } else if (e.code === 'ArrowLeft') {
@@ -318,6 +330,20 @@ document.addEventListener('keydown', (e) => {
         rateCard(2); // Learning
     } else if (e.code === 'Digit3' || e.code === 'Numpad3') {
         rateCard(3); // Mastered
+    }
+});
+
+// Add jump to card listener
+document.addEventListener('DOMContentLoaded', () => {
+    const jumpSelect = document.getElementById('fcJumpToCard');
+    if (jumpSelect) {
+        jumpSelect.addEventListener('change', (e) => {
+            const idx = parseInt(e.target.value);
+            if (!isNaN(idx) && idx >= 0 && idx < STATE.currentFlashcards.length) {
+                STATE.currentFcIndex = idx;
+                showCard(idx);
+            }
+        });
     }
 });
 

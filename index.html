@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VocabVault - Vocabulary Enhancement Tool</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>Ã°Å¸â€œâ€“</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
@@ -235,7 +235,7 @@
         <section id="reader" class="section">
             <div class="section-header">
                 <h1>Reader</h1>
-                <p>Open documents or websites Ã¢â‚¬â€ highlight any word to look it up instantly</p>
+                <p>Open documents or websites — highlight any word to look it up instantly</p>
             </div>
 
             <div class="reader-toolbar">
@@ -512,19 +512,10 @@
                     <div class="fc-control-group">
                         <label>Type:</label>
                         <select id="fcType">
-                            <option value="classic">Word â†’ Meaning</option>
-                            <option value="meaning">Meaning â†’ Word</option>
-                            <option value="fill">Example (blank) â†’ Word</option>
-                            <option value="meaning_example_fill">Meaning & Example (blank) â†’ Word</option>
-                            <option value="synonym">Synonym/Antonym â†’ Word</option>
-                        </select>
-                    </div>
-                    <div class="fc-control-group">
-                        <label>Color:</label>
-                        <select id="fcColor" onchange="updateFlashcardTheme()">
-                            <option value="default">Default Gradient</option>
-                            <option value="white">White</option>
-                            <option value="dark">Dark / Black</option>
+                            <option value="classic">Word → Meaning</option>
+                            <option value="meaning">Meaning → Word</option>
+                            <option value="fill">Example (blank) → Word</option>
+                            <option value="synonym">Synonym/Antonym → Word</option>
                         </select>
                     </div>
                     <div class="fc-control-group">
@@ -547,20 +538,31 @@
             </div>
 
             <div id="flashcardArea" class="flashcard-area hidden">
-                <div class="fc-progress">
-                    <span id="fcCurrent">1</span> / <span id="fcTotal">0</span>
-                    <div class="fc-progress-bar">
+                <div class="fc-progress" style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <select id="fcJumpToCard" style="padding: 2px 5px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-color); font-family: inherit; font-size: 0.9rem;">
+                            <!-- Dynamically populated -->
+                        </select> 
+                        of <span id="fcTotal">0</span>
+                    </div>
+                    <div class="fc-progress-bar" style="flex:1; margin-left: 15px;">
                         <div class="fc-progress-fill" id="fcProgressFill"></div>
                     </div>
                 </div>
+                
+                <div style="text-align: center; font-size: 0.8rem; opacity: 0.6; margin-bottom: 5px;">
+                    Shortcuts: Space/Up/Down (Flip) | Left/Right (Prev/Next) | 1, 2, 3 (Rate)
+                </div>
 
-                <div class="flashcard-overlay" id="fcOverlay" onclick="toggleFullscreenFlashcard()"></div><div class="flashcard" id="flashcard">
+                <div class="flashcard-overlay" id="fcOverlay" onclick="toggleFullscreenFlashcard()"></div>
+                <div class="flashcard" id="flashcard">
                     <div class="flashcard-inner">
                         <div class="flashcard-front" id="fcFront">
                             <div class="fc-front-content" id="fcFrontContent"></div>
                             <span class="flip-hint"><i class="fas fa-sync-alt"></i> Click to reveal</span>
                         </div>
                         <div class="flashcard-back">
+                            <button class="btn-icon" style="position:absolute; top:10px; right:10px; z-index:10; background:rgba(0,0,0,0.2); color:white; border-radius:50%;" onclick="toggleFullscreenFlashcard(event)" title="Fullscreen"><i class="fas fa-expand"></i></button>
                             <h2 id="fcBackWord"></h2>
                             <p id="fcBackPhonetic" class="fc-back-phonetic"></p>
                             <div class="fc-pronounce-btns">
@@ -573,8 +575,14 @@
                             </div>
                             <span id="fcBackPos" class="pos-badge"></span>
                             <p id="fcBackMeaning" class="fc-meaning"></p>
-                            <p id="fcBackExample" class="fc-example"></p>
-                            <div id="fcBackExtra" class="fc-back-extra" style="margin-top: 15px; font-size: 0.85rem; text-align: left; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 10px;"></div>
+                            <div id="fcBackExtra" class="fc-back-extra"></div>
+                            
+                            <!-- Action Buttons -->
+                            <div class="fc-actions" style="display:flex; gap:10px; margin-top:15px; justify-content:center; width: 100%;">
+                                <button class="btn btn-sm btn-outline" style="color:inherit; border-color:inherit;" onclick="fcLookupWord(event)" title="Lookup Word"><i class="fas fa-search"></i></button>
+                                <button class="btn btn-sm btn-outline" style="color:inherit; border-color:inherit;" onclick="fcEditWord(event)" title="Edit Word"><i class="fas fa-edit"></i></button>
+                                <button class="btn btn-sm btn-outline" style="color:inherit; border-color:inherit;" onclick="fcDeleteWord(event)" title="Delete Word"><i class="fas fa-trash"></i></button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -602,7 +610,7 @@
 
             <div id="fcEmpty" class="empty-state">
                 <i class="fas fa-clone"></i>
-                <p>Select a range of words from your history to generate flashcards</p>
+                <p>No words found for this range/filter.</p>
             </div>
         </section>
 
@@ -626,8 +634,8 @@
                     <div class="quiz-option-group">
                         <label>Quiz Type:</label>
                         <select id="quizType">
-                            <option value="meaning">Word â†’ Meaning</option>
-                            <option value="word">Meaning â†’ Word</option>
+                            <option value="meaning">Word → Meaning</option>
+                            <option value="word">Meaning → Word</option>
                             <option value="fill">Fill in the Blank</option>
                             <option value="synonym">Synonym Match</option>
                         </select>
@@ -857,4 +865,3 @@
     <script type="module" src="/src/main.js"></script>
 </body>
 </html>
-
