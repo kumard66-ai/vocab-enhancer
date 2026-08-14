@@ -1112,11 +1112,13 @@ body {
     overflow-y: auto;
 }
 
-/* Vertical centering for small content */
-.flashcard-front > *:first-child, .flashcard-back > *:first-child {
+/* Vertical centering for small content without splitting elements apart */
+.flashcard-front::before, .flashcard-back::before {
+    content: '';
     margin-top: auto;
 }
-.flashcard-front > *:last-child, .flashcard-back > *:last-child {
+.flashcard-front::after, .flashcard-back::after {
+    content: '';
     margin-bottom: auto;
 }
 

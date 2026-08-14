@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -512,11 +512,19 @@
                     <div class="fc-control-group">
                         <label>Type:</label>
                         <select id="fcType">
-                            <option value="classic">Word â†’ Meaning</option>
-                            <option value="meaning">Meaning â†’ Word</option>
-                            <option value="fill">Example (blank) â†’ Word</option>
-                            <option value="meaning_example_fill">Meaning & Example (blank) â†’ Word</option>
-                            <option value="synonym">Synonym/Antonym â†’ Word</option>
+                            <option value="classic">Word → Meaning</option>
+                            <option value="meaning">Meaning → Word</option>
+                            <option value="fill">Example (blank) → Word</option>
+                            <option value="meaning_example_fill">Meaning & Example (blank) → Word</option>
+                            <option value="synonym">Synonym/Antonym → Word</option>
+                        </select>
+                    </div>
+                    <div class="fc-control-group">
+                        <label>Color:</label>
+                        <select id="fcColor" onchange="updateFlashcardTheme()">
+                            <option value="default">Default Gradient</option>
+                            <option value="white">White</option>
+                            <option value="dark">Dark / Black</option>
                         </select>
                     </div>
                     <div class="fc-control-group fc-checkboxes">
@@ -608,8 +616,8 @@
                     <div class="quiz-option-group">
                         <label>Quiz Type:</label>
                         <select id="quizType">
-                            <option value="meaning">Word â†’ Meaning</option>
-                            <option value="word">Meaning â†’ Word</option>
+                            <option value="meaning">Word → Meaning</option>
+                            <option value="word">Meaning → Word</option>
                             <option value="fill">Fill in the Blank</option>
                             <option value="synonym">Synonym Match</option>
                         </select>
