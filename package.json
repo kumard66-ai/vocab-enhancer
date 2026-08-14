@@ -1,0 +1,25 @@
+{
+  "name": "vocab-enhancer-v2",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"vite\" \"nodemon server/index.js\"",
+    "build": "vite build && node build-ext.cjs",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "adm-zip": "^0.6.0",
+    "concurrently": "^10.0.4",
+    "nodemon": "^3.1.14",
+    "vite": "^8.2.1"
+  },
+  "dependencies": {
+    "chart.js": "^4.5.1",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "firebase": "^12.17.1",
+    "mammoth": "^1.12.1",
+    "pdfjs-dist": "^6.2.108"
+  }
+}

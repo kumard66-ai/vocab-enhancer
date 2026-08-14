@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VocabVault - Vocabulary Enhancement Tool</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <i class="fas fa-book-open"></i>
+            <span>VocabVault</span>
+        </div>
+        <div class="nav-links">
+            <a href="#lookup" class="nav-link active" data-section="lookup">
+                <i class="fas fa-search"></i> Lookup
+            </a>
+            <a href="#history" class="nav-link" data-section="history">
+                <i class="fas fa-table"></i> History<span id="navHistoryCount" class="nav-badge"></span>
+            </a>
+            <a href="#reader" class="nav-link" data-section="reader">
+                <i class="fas fa-book-reader"></i> Reader
+            </a>
+            <a href="#upload" class="nav-link" data-section="upload">
+                <i class="fas fa-file-upload"></i> Upload
+            </a>
+            <a href="#flashcards" class="nav-link" data-section="flashcards">
+                <i class="fas fa-clone"></i> Flashcards
+            </a>
+            <a href="#quiz" class="nav-link" data-section="quiz">
+                <i class="fas fa-brain"></i> Quiz
+            </a>
+            <a href="#games" class="nav-link" data-section="games">
+                <i class="fas fa-gamepad"></i> Games
+            </a>
+            <a href="#stats" class="nav-link" data-section="stats">
+                <i class="fas fa-chart-bar"></i> Stats<span id="navMemoryBadge" class="nav-badge memory-badge"></span>
+            </a>
+        </div>
+        <div class="nav-right">
+            <div id="userArea" class="user-area">
+                <button id="loginBtn" class="btn btn-outline btn-sm">
+                    <i class="fab fa-google"></i> Sign In
+                </button>
+                <div id="userProfile" class="user-profile hidden">
+                    <img id="userAvatar" class="user-avatar" src="" alt="">
+                    <span id="userName" class="user-name"></span>
+                    <div class="sync-status" id="syncStatus" title="Synced">
+                        <i class="fas fa-cloud"></i>
+                    </div>
+                    <button id="logoutBtn" class="btn-icon" title="Sign out">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+            <a href="vocab-enhancer-extension.zip" download id="downloadExtBtn" class="btn btn-primary btn-sm" style="margin-left: 10px; margin-right: 10px; text-decoration: none;" title="Download as Chrome Extension">
+                <i class="fas fa-download"></i> Extension
+            </a>
+            <button class="theme-toggle" id="themeToggle" title="Toggle dark mode">
+                <i class="fas fa-moon"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container">
+        <!-- Lookup Section -->
+        <section id="lookup" class="section active">
+            <div class="section-header">
+                <h1>Word Lookup</h1>
+                <p>Search any word for pronunciation, meanings, and usage examples</p>
+            </div>
+
+            <div class="search-container">
+                <div class="search-box">
+                    <input type="text" id="wordInput" placeholder="Type a word..." autocomplete="off">
+                    <button id="searchBtn" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                    <button id="llmSettingsBtn" class="btn btn-outline" title="LLM Settings" style="margin-left: 5px;">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
+                <div class="source-selector">
+                    <label>Source:</label>
+                    <button id="removePdfBtn" class="btn btn-outline btn-sm" title="Remove this PDF dictionary" style="color:var(--danger);display:none">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    <select id="sourceSelect" style="max-width:220px">
+                        <option value="free">Free Dictionary API</option>
+                        <option value="vocabulary">Vocabulary.com</option>
+                        <option value="cambridge">Cambridge Dictionary</option>
+                        <option value="oxford">Oxford Dictionary</option>
+                        <option value="merriam">Merriam-Webster</option>
+                        <option value="longman">Longman (LDOCE)</option>
+                        <option value="custom">+ Add Custom Source</option>
+                        <option value="uploadpdf">+ Upload PDF Dictionary</option>
+                    </select>
+                    <button id="openSourceBtn" class="btn btn-outline btn-sm" title="Open in source website">
+                        <i class="fas fa-external-link-alt"></i>
+                    </button>
+                    <input type="file" id="pdfDictInput" accept=".pdf" hidden>
+                </div>
+            </div>
+
+            <!-- Word Result Card -->
+            <div id="wordResult" class="word-card hidden">
+                <div class="word-header">
+                    <div class="word-title">
+                        <h2 id="resultWord"></h2>
+                        <span id="resultPhonetic" class="phonetic"></span>
+                        <button id="pronounceBtn" class="btn-icon" title="Listen to pronunciation">
+                            <i class="fas fa-volume-up"></i>
+                        </button>
+                    </div>
+                    <button id="saveWordBtn" class="btn btn-success btn-sm">
+                        <i class="fas fa-plus"></i> Save Selected
+                    </button>
+                </div>
+                <div id="resultMeanings" class="meanings-container"></div>
+                <div id="aiResultBlock" class="ai-result-section hidden" style="margin-top: 20px; padding: 15px; border-left: 4px solid var(--primary); background-color: rgba(var(--primary-rgb), 0.05); border-radius: 4px;">
+                    <h4><i class="fas fa-magic"></i> AI Enhanced Context <i id="aiLoadingSpinner" class="fas fa-spinner fa-spin hidden" style="margin-left: 10px;"></i></h4>
+                    <div id="aiMnemonic" style="margin-bottom: 10px; font-style: italic;"></div>
+                    <div id="aiExamples" class="tags-list"></div>
+                </div>
+                <div id="resultSynonyms" class="synonyms-section hidden">
+                    <h4><i class="fas fa-link"></i> Synonyms</h4>
+                    <div id="synonymsList" class="tags-list"></div>
+                </div>
+                <div id="resultAntonyms" class="antonyms-section hidden">
+                    <h4><i class="fas fa-unlink"></i> Antonyms</h4>
+                    <div id="antonymsList" class="tags-list"></div>
+                </div>
+                <div id="resultPhrases" class="phrases-section hidden">
+                    <h4><i class="fas fa-quote-left"></i> Phrases / Collocations</h4>
+                    <div id="phrasesList" class="tags-list"></div>
+                </div>
+                <div id="resultTopics" class="topics-section hidden">
+                    <h4><i class="fas fa-tags"></i> Related Topics</h4>
+                    <div id="topicsList" class="tags-list"></div>
+                </div>
+            </div>
+
+            <!-- Word of the Day -->
+            <div class="wotd-card">
+                <div class="wotd-badge">Word of the Day</div>
+                <h3 id="wotdWord">Loading...</h3>
+                <p id="wotdMeaning"></p>
+                <button id="wotdLookup" class="btn btn-outline btn-sm">Look it up</button>
+            </div>
+        </section>
+
+        <!-- History Section -->
+        <section id="history" class="section">
+            <div class="section-header">
+                <h1>Word History</h1>
+                <p>All your saved words in one place</p>
+            </div>
+
+            <div class="history-toolbar">
+                <div class="search-filter">
+                    <input type="text" id="historySearch" placeholder="Filter words...">
+                    <select id="historyFilter">
+                        <option value="all">All Parts of Speech</option>
+                        <option value="noun">Nouns</option>
+                        <option value="verb">Verbs</option>
+                        <option value="adjective">Adjectives</option>
+                        <option value="adverb">Adverbs</option>
+                    </select>
+                    <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; margin: 0; font-size: 0.9rem;">
+                        <input type="checkbox" id="historyNoMeaningFilter">
+                        Without Meaning
+                    </label>
+                    <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px;">
+                        <input type="date" id="historyDateFrom" class="input" style="padding: 0.4rem;" title="From Date">
+                        <span style="color: var(--text-muted);">-</span>
+                        <input type="date" id="historyDateTo" class="input" style="padding: 0.4rem;" title="To Date">
+                        <input type="number" id="historySnoFrom" class="input" style="padding: 0.4rem; width: 80px;" placeholder="From S.No" min="1" title="From Serial No.">
+                        <span style="color: var(--text-muted);">-</span>
+                        <input type="number" id="historySnoTo" class="input" style="padding: 0.4rem; width: 80px;" placeholder="To S.No" min="1" title="To Serial No.">
+                        <div style="width: 1rem;"></div> <!-- Spacer -->
+                        <button id="copyExcel" class="btn btn-outline btn-sm">
+                            <i class="fas fa-copy"></i> Copy for Excel
+                        </button>
+                        <button id="exportExcel" class="btn btn-success btn-sm">
+                            <i class="fas fa-file-excel"></i> Export Excel
+                        </button>
+                        <label class="btn btn-outline btn-sm" style="cursor:pointer; display:inline-flex; align-items:center; gap:0.5rem; margin-bottom:0;">
+                            <i class="fas fa-file-import"></i> Import Excel
+                            <input type="file" id="importExcelFile" accept=".xlsx, .xls, .csv" hidden>
+                        </label>
+                        <button id="clearHistory" class="btn btn-danger btn-sm">
+                            <i class="fas fa-trash"></i> Clear All
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table id="historyTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th data-sort="word">Word <i class="fas fa-sort"></i></th>
+                            <th>Pronunciation</th>
+                            <th data-sort="partOfSpeech">Part of Speech <i class="fas fa-sort"></i></th>
+                            <th>Related Topics</th>
+                            <th data-sort="meaning">Meaning <i class="fas fa-sort"></i></th>
+                            <th data-sort="aiMnemonic">AI Mnemonic <i class="fas fa-sort"></i></th>
+                            <th data-sort="example">Example <i class="fas fa-sort"></i></th>
+                            <th>Phrases</th>
+                            <th>Synonyms</th>
+                            <th>Antonyms</th>
+                            <th>Source</th>
+                            <th data-sort="dateAdded">Date Added <i class="fas fa-sort"></i></th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyBody">
+                    </tbody>
+                </table>
+            </div>
+            <div id="emptyHistory" class="empty-state">
+                <i class="fas fa-inbox"></i>
+                <p>No words saved yet. Start looking up words!</p>
+            </div>
+        </section>
+
+        <!-- Reader Section -->
+        <section id="reader" class="section">
+            <div class="section-header">
+                <h1>Reader</h1>
+                <p>Open documents or websites — highlight any word to look it up instantly</p>
+            </div>
+
+            <div class="reader-toolbar">
+                <div class="reader-tabs">
+                    <button class="reader-tab active" data-reader-tab="file">
+                        <i class="fas fa-file-alt"></i> Open File
+                    </button>
+                    <button class="reader-tab" data-reader-tab="url">
+                        <i class="fas fa-globe"></i> Open URL
+                    </button>
+                    <button class="reader-tab" data-reader-tab="paste">
+                        <i class="fas fa-paste"></i> Paste Text
+                    </button>
+                </div>
+                <div class="reader-actions">
+                    <button id="readerZoomOut" class="btn btn-outline btn-sm" title="Zoom out">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <span id="readerZoomLevel">100%</span>
+                    <button id="readerZoomIn" class="btn btn-outline btn-sm" title="Zoom in">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <button id="readerFullscreen" class="btn btn-outline btn-sm" title="Fullscreen">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- File Input -->
+            <div class="reader-input-panel" id="readerFilePanel">
+                <div class="reader-dropzone" id="readerDropZone">
+                    <i class="fas fa-file-pdf"></i>
+                    <h3>Open a document to read</h3>
+                    <p>Supports: PDF, DOCX, TXT, HTML</p>
+                    <label for="readerFileInput" class="btn btn-primary">
+                        <i class="fas fa-folder-open"></i> Choose File
+                    </label>
+                    <input type="file" id="readerFileInput" accept=".pdf,.docx,.txt,.html,.htm,.md" hidden>
+                </div>
+            </div>
+
+            <!-- URL Input -->
+            <div class="reader-input-panel hidden" id="readerUrlPanel">
+                <div class="url-input-box">
+                    <input type="url" id="readerUrlInput" placeholder="Enter website URL (e.g., https://en.wikipedia.org/wiki/...)">
+                    <button id="readerLoadUrl" class="btn btn-primary">
+                        <i class="fas fa-arrow-right"></i> Load
+                    </button>
+                </div>
+                <p class="reader-url-hint"><i class="fas fa-info-circle"></i> Works best with: Wikipedia, news articles, blogs, Medium posts. Google/Facebook/Twitter won't load (they block external access).</p>
+            </div>
+
+            <!-- Paste Text Input -->
+            <div class="reader-input-panel hidden" id="readerPastePanel">
+                <textarea id="readerPasteText" placeholder="Paste any text here to read and look up words..."></textarea>
+                <button id="readerLoadPaste" class="btn btn-primary">
+                    <i class="fas fa-eye"></i> Open in Reader
+                </button>
+            </div>
+
+            <!-- Reading Area -->
+            <div id="readerContent" class="reader-content hidden">
+                <div class="reader-doc-header">
+                    <span id="readerDocTitle"><i class="fas fa-file"></i> Document</span>
+                    <div class="reader-doc-actions">
+                        <button id="readerExtractText" class="btn btn-outline btn-sm hidden">
+                            <i class="fas fa-align-left"></i> Extract Text
+                        </button>
+                        <button id="readerClose" class="btn btn-outline btn-sm">
+                            <i class="fas fa-times"></i> Close
+                        </button>
+                    </div>
+                </div>
+                <div class="reader-split-view">
+                    <div id="readerBody" class="reader-body"></div>
+                    <div id="readerIframe" class="reader-iframe-container hidden">
+                        <iframe id="readerFrame"></iframe>
+                    </div>
+                    <div id="readerTextPanel" class="reader-text-panel hidden">
+                        <div class="text-panel-header">
+                            <span><i class="fas fa-align-left"></i> Extracted Text</span>
+                            <div class="text-panel-nav">
+                                <label>Go to page:</label>
+                                <select id="textPanelPageSelect" class="text-panel-page-select"></select>
+                            </div>
+                            <button id="readerTextPanelClose" class="btn-icon" title="Close panel"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div id="readerTextContent" class="reader-text-content"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Floating Lookup Box for PDF mode -->
+            <div id="readerLookupBox" class="reader-lookup-box hidden">
+                <input type="text" id="readerLookupInput" placeholder="Type a word to look up...">
+                <button id="readerLookupBtn" class="btn btn-primary btn-sm"><i class="fas fa-search"></i></button>
+            </div>
+
+            <!-- Lookup Popup (appears on text selection) -->
+            <div id="readerPopup" class="reader-popup hidden">
+                <div class="popup-drag-handle" id="popupDragHandle">
+                    <i class="fas fa-grip-horizontal"></i>
+                </div>
+                <div class="popup-header">
+                    <div class="popup-word" id="popupWord"></div>
+                    <button id="popupClose" class="btn-icon" title="Close"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="popup-source-row">
+                    <select id="popupSourceSelect" class="popup-source-select">
+                        <option value="free">Free Dictionary</option>
+                        <option value="longman">Longman (LDOCE)</option>
+                        <option value="vocabulary">Vocabulary.com</option>
+                        <option value="cambridge">Cambridge</option>
+                        <option value="oxford">Oxford</option>
+                        <option value="merriam">Merriam-Webster</option>
+                    </select>
+                    <button id="popupRelookup" class="btn btn-outline btn-sm" title="Lookup with selected source"><i class="fas fa-redo"></i></button>
+                </div>
+                <div class="popup-loading hidden" id="popupLoading">
+                    <i class="fas fa-spinner fa-spin"></i> Looking up...
+                </div>
+                <div class="popup-result hidden" id="popupResult">
+                    <div class="popup-meta">
+                        <span class="popup-pos" id="popupPos"></span>
+                        <span class="popup-phonetic" id="popupPhonetic"></span>
+                        <button id="popupPronounce" class="btn-icon" title="Pronounce"><i class="fas fa-volume-up"></i></button>
+                    </div>
+                    <div class="popup-meanings" id="popupMeanings"></div>
+                    <div class="popup-tags-section hidden" id="popupSynSection">
+                        <label>Synonyms</label>
+                        <div class="popup-tags" id="popupSynonyms"></div>
+                    </div>
+                    <div class="popup-tags-section hidden" id="popupAntSection">
+                        <label>Antonyms</label>
+                        <div class="popup-tags" id="popupAntonyms"></div>
+                    </div>
+                    <div class="popup-tags-section hidden" id="popupPhraseSection">
+                        <label>Phrases</label>
+                        <div class="popup-tags" id="popupPhrases"></div>
+                    </div>
+                    <div class="popup-tags-section hidden" id="popupTopicSection">
+                        <label>Related Topics</label>
+                        <div class="popup-tags" id="popupTopics"></div>
+                    </div>
+                </div>
+                <div class="popup-actions">
+                    <button id="popupSave" class="btn btn-success btn-sm">
+                        <i class="fas fa-plus"></i> Save
+                    </button>
+                    <button id="popupLookupFull" class="btn btn-primary btn-sm">
+                        <i class="fas fa-external-link-alt"></i> Full Lookup
+                    </button>
+                </div>
+            </div>
+
+            <!-- Saved words sidebar -->
+            <div id="readerSidebar" class="reader-sidebar hidden">
+                <h4><i class="fas fa-bookmark"></i> Words from this session</h4>
+                <div id="readerSessionWords" class="reader-session-words"></div>
+                <button id="readerSaveAll" class="btn btn-success btn-sm">
+                    <i class="fas fa-save"></i> Save All to History
+                </button>
+            </div>
+        </section>
+
+        <!-- Upload Section -->
+        <section id="upload" class="section">
+            <div class="section-header">
+                <h1>File Upload</h1>
+                <p>Upload documents to extract highlighted/bold words automatically</p>
+            </div>
+
+            <div class="upload-area" id="dropZone">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <h3>Drag & Drop your file here</h3>
+                <p>Supports: PDF, DOCX, TXT, HTML, EPUB</p>
+                <span class="upload-or">or</span>
+                <label for="fileInput" class="btn btn-primary">
+                    <i class="fas fa-folder-open"></i> Browse Files
+                </label>
+                <input type="file" id="fileInput" accept=".pdf,.docx,.txt,.html,.epub" hidden>
+            </div>
+
+            <div id="uploadProgress" class="upload-progress hidden">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <p id="progressText">Processing...</p>
+            </div>
+
+            <div id="extractedWords" class="extracted-words hidden">
+                <div class="extracted-header">
+                    <h3><i class="fas fa-highlighter"></i> Extracted Words (<span id="extractedCount">0</span>)</h3>
+                    <div class="extracted-actions">
+                        <button id="lookupAllBtn" class="btn btn-primary btn-sm">
+                            <i class="fas fa-search"></i> Lookup All
+                        </button>
+                        <button id="saveAllBtn" class="btn btn-success btn-sm">
+                            <i class="fas fa-save"></i> Save All to History
+                        </button>
+                    </div>
+                </div>
+                <div id="extractedList" class="extracted-list"></div>
+            </div>
+
+            <!-- Manual Word Entry -->
+            <div class="manual-entry">
+                <h3><i class="fas fa-keyboard"></i> Or paste text with highlighted words</h3>
+                <textarea id="manualText" placeholder="Paste your text here. Words wrapped in **asterisks**, <mark>mark tags</mark>, or ALL CAPS will be extracted..."></textarea>
+                <button id="extractManualBtn" class="btn btn-primary">
+                    <i class="fas fa-magic"></i> Extract Words
+                </button>
+            </div>
+
+            <!-- Bulk Word List Upload -->
+            <div class="manual-entry" style="margin-top:1.5rem">
+                <h3><i class="fas fa-list"></i> Bulk Word List</h3>
+                <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:0.75rem">Paste a list of words (one per line or comma-separated) and select a source to look them all up.</p>
+                <textarea id="bulkWordList" rows="6" placeholder="word1&#10;word2&#10;word3&#10;&#10;or: word1, word2, word3"></textarea>
+                <div style="display:flex;align-items:center;gap:0.75rem;margin-top:0.75rem;flex-wrap:wrap">
+                    <label style="font-size:0.85rem;font-weight:500;color:var(--text-secondary)">Source:</label>
+                    <select id="bulkSourceSelect" style="padding:0.5rem 1rem;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-card);color:var(--text);font-size:0.875rem">
+                        <option value="free">Free Dictionary API</option>
+                        <option value="vocabulary">Vocabulary.com</option>
+                        <option value="cambridge">Cambridge Dictionary</option>
+                        <option value="oxford">Oxford Dictionary</option>
+                        <option value="merriam">Merriam-Webster</option>
+                        <option value="longman">Longman (LDOCE)</option>
+                    </select>
+                    <button id="bulkLookupBtn" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Lookup & Save All
+                    </button>
+                </div>
+                <div id="bulkProgress" class="upload-progress hidden" style="margin-top:1rem">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="bulkProgressFill"></div>
+                    </div>
+                    <p id="bulkProgressText">Processing...</p>
+                </div>
+                
+                <!-- Bulk Lookup Results Section -->
+                <div id="bulkResultsContainer" class="bulk-results-container hidden" style="margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1.5rem;">
+                    <div class="bulk-results-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+                        <h4 style="margin: 0; font-size: 1.1rem; color: var(--text);"><i class="fas fa-poll-h" style="margin-right: 0.5rem; color: var(--primary);"></i> Bulk Lookup Results</h4>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button id="bulkExportCSV" class="btn btn-success btn-sm"><i class="fas fa-file-csv"></i> Export CSV</button>
+                            <button id="bulkClearResults" class="btn btn-outline btn-sm" style="color: var(--danger);"><i class="fas fa-times"></i> Clear Results</button>
+                        </div>
+                    </div>
+                    <div id="bulkResultsList" class="bulk-results-list">
+                        <!-- Word cards will be dynamically injected here -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Flashcards Section -->
+        <section id="flashcards" class="section">
+            <div class="section-header">
+                <h1>Flashcards</h1>
+                <p>Review your vocabulary with interactive flashcards</p>
+            </div>
+
+            <div class="flashcard-controls">
+                <div class="fc-controls-row">
+                    <div class="fc-control-group">
+                        <label>From:</label>
+                        <select id="fcFrom"></select>
+                    </div>
+                    <div class="fc-control-group">
+                        <label>To:</label>
+                        <select id="fcTo"></select>
+                    </div>
+                    <div class="fc-control-group">
+                        <label>Type:</label>
+                        <select id="fcType">
+                            <option value="classic">Word → Meaning</option>
+                            <option value="meaning">Meaning → Word</option>
+                            <option value="fill">Example (blank) → Word</option>
+                            <option value="synonym">Synonym/Antonym → Word</option>
+                        </select>
+                    </div>
+                    <div class="fc-control-group fc-checkboxes">
+                        <label><input type="checkbox" id="shuffleCards"> Shuffle</label>
+                    </div>
+                    <button id="generateCards" class="btn btn-primary btn-sm">
+                        <i class="fas fa-magic"></i> Generate
+                    </button>
+                </div>
+            </div>
+
+            <div id="flashcardArea" class="flashcard-area hidden">
+                <div class="fc-progress">
+                    <span id="fcCurrent">1</span> / <span id="fcTotal">0</span>
+                    <div class="fc-progress-bar">
+                        <div class="fc-progress-fill" id="fcProgressFill"></div>
+                    </div>
+                </div>
+
+                <div class="flashcard" id="flashcard">
+                    <div class="flashcard-inner">
+                        <div class="flashcard-front" id="fcFront">
+                            <div class="fc-front-content" id="fcFrontContent"></div>
+                            <span class="flip-hint"><i class="fas fa-sync-alt"></i> Click to reveal</span>
+                        </div>
+                        <div class="flashcard-back">
+                            <h2 id="fcBackWord"></h2>
+                            <p id="fcBackPhonetic" class="fc-back-phonetic"></p>
+                            <div class="fc-pronounce-btns">
+                                <button class="btn btn-outline btn-sm fc-pronounce-btn" id="fcPronounceUS" title="US pronunciation">
+                                    <i class="fas fa-volume-up"></i> US
+                                </button>
+                                <button class="btn btn-outline btn-sm fc-pronounce-btn" id="fcPronounceUK" title="UK pronunciation">
+                                    <i class="fas fa-volume-up"></i> UK
+                                </button>
+                            </div>
+                            <span id="fcBackPos" class="pos-badge"></span>
+                            <p id="fcBackMeaning" class="fc-meaning"></p>
+                            <p id="fcBackExample" class="fc-example"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="fc-nav">
+                    <button id="fcPrev" class="btn btn-outline">
+                        <i class="fas fa-arrow-left"></i> Previous
+                    </button>
+                    <div class="fc-rating">
+                        <button class="btn btn-danger btn-sm fc-rate" data-rating="1" title="Don't know">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        <button class="btn btn-warning btn-sm fc-rate" data-rating="2" title="Somewhat know">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <button class="btn btn-success btn-sm fc-rate" data-rating="3" title="Know well">
+                            <i class="fas fa-check"></i>
+                        </button>
+                    </div>
+                    <button id="fcNext" class="btn btn-outline">
+                        Next <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="fcEmpty" class="empty-state">
+                <i class="fas fa-clone"></i>
+                <p>Select a range of words from your history to generate flashcards</p>
+            </div>
+        </section>
+
+        <!-- Quiz Section -->
+        <section id="quiz" class="section">
+            <div class="section-header">
+                <h1>Quiz Mode</h1>
+                <p>Test your vocabulary knowledge</p>
+            </div>
+
+            <div class="quiz-setup" id="quizSetup">
+                <div class="quiz-options">
+                    <div class="quiz-option-group">
+                        <label>S.No From:</label>
+                        <input type="number" id="quizSnoFrom" class="input" style="width: 100%; padding: 0.5rem;" placeholder="Start">
+                    </div>
+                    <div class="quiz-option-group">
+                        <label>S.No To:</label>
+                        <input type="number" id="quizSnoTo" class="input" style="width: 100%; padding: 0.5rem;" placeholder="End">
+                    </div>
+                    <div class="quiz-option-group">
+                        <label>Quiz Type:</label>
+                        <select id="quizType">
+                            <option value="meaning">Word → Meaning</option>
+                            <option value="word">Meaning → Word</option>
+                            <option value="fill">Fill in the Blank</option>
+                            <option value="synonym">Synonym Match</option>
+                        </select>
+                    </div>
+                    <div class="quiz-option-group">
+                        <label>Number of Questions:</label>
+                        <select id="quizCount">
+                            <option value="5">5</option>
+                            <option value="10" selected>10</option>
+                            <option value="20">20</option>
+                            <option value="all">All</option>
+                        </select>
+                    </div>
+                    <div class="quiz-option-group">
+                        <label>Difficulty:</label>
+                        <select id="quizDifficulty">
+                            <option value="easy">Easy (4 options)</option>
+                            <option value="medium" selected>Medium (4 options, timed)</option>
+                            <option value="hard">Hard (6 options, timed)</option>
+                        </select>
+                    </div>
+                </div>
+                <button id="startQuiz" class="btn btn-primary btn-lg">
+                    <i class="fas fa-play"></i> Start Quiz
+                </button>
+            </div>
+
+            <div id="quizArea" class="quiz-area hidden">
+                <div class="quiz-header">
+                    <span class="quiz-progress">Question <span id="quizCurrentQ">1</span>/<span id="quizTotalQ">10</span></span>
+                    <span class="quiz-score">Score: <span id="quizScore">0</span></span>
+                    <span class="quiz-timer" id="quizTimer"></span>
+                </div>
+                <div class="quiz-question" id="quizQuestion"></div>
+                <div class="quiz-options-grid" id="quizOptions"></div>
+                <button id="nextQuestion" class="btn btn-primary hidden">Next Question <i class="fas fa-arrow-right"></i></button>
+            </div>
+
+            <div id="quizResults" class="quiz-results hidden">
+                <h2>Quiz Complete!</h2>
+                <div class="results-circle">
+                    <span id="resultPercent">0%</span>
+                </div>
+                <p id="resultMessage"></p>
+                <div class="results-breakdown" id="resultsBreakdown"></div>
+                <button id="retakeQuiz" class="btn btn-primary">
+                    <i class="fas fa-redo"></i> Retake Quiz
+                </button>
+            </div>
+        </section>
+
+        <!-- Games Section -->
+        <section id="games" class="section">
+            <div class="section-header">
+                <h1>Games</h1>
+                <p>Play games to memorize your vocabulary</p>
+            </div>
+            
+            <div class="games-container">
+                <div class="card" style="text-align: center;">
+                    <h2>Hangman</h2>
+                    <p style="color: var(--text-muted); margin-bottom: 20px;">Guess the word based on its meaning!</p>
+                    
+                    <div id="hangmanSetup">
+                        <div style="display: flex; gap: 1rem; justify-content: center; margin-bottom: 20px;">
+                            <div style="text-align: left;">
+                                <label style="display: block; font-weight: 500; font-size: 0.85rem; margin-bottom: 5px; color: var(--text-secondary);">S.No From:</label>
+                                <input type="number" id="hangmanSnoFrom" class="input" style="padding: 0.5rem; width: 100px;" placeholder="Start">
+                            </div>
+                            <div style="text-align: left;">
+                                <label style="display: block; font-weight: 500; font-size: 0.85rem; margin-bottom: 5px; color: var(--text-secondary);">S.No To:</label>
+                                <input type="number" id="hangmanSnoTo" class="input" style="padding: 0.5rem; width: 100px;" placeholder="End">
+                            </div>
+                        </div>
+                        <button id="startHangmanBtn" class="btn btn-primary btn-lg">Start Hangman</button>
+                    </div>
+
+                    <div id="hangmanGame" style="display: none;">
+                        <div class="hangman-stats" style="display: flex; justify-content: space-between; margin-bottom: 20px; font-weight: bold;">
+                            <span id="hangmanLives" style="color: var(--danger);">Lives: 6</span>
+                            <span id="hangmanScore" style="color: var(--success);">Score: 0</span>
+                        </div>
+                        
+                        <div class="card" style="background: var(--bg); margin-bottom: 20px;">
+                            <h3 style="margin-top:0; font-size: 1rem; color: var(--text-muted);">Hint (Meaning)</h3>
+                            <p id="hangmanHint" style="font-size: 1.1rem; line-height: 1.5;"></p>
+                        </div>
+                        
+                        <div id="hangmanWordDisplay" style="font-size: 2.5rem; letter-spacing: 0.5rem; font-family: monospace; font-weight: bold; margin-bottom: 30px;">
+                            _ _ _ _ _
+                        </div>
+                        
+                        <div id="hangmanKeyboard" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; max-width: 500px; margin: 0 auto;">
+                            <!-- Keyboard buttons will be injected here -->
+                        </div>
+                        
+                        <div id="hangmanResult" style="margin-top: 20px; display: none;">
+                            <h3 id="hangmanResultMessage" style="font-size: 1.5rem; margin-bottom: 10px;"></h3>
+                            <p id="hangmanResultWord" style="font-size: 1.2rem; margin-bottom: 20px;"></p>
+                            <button id="nextHangmanBtn" class="btn btn-primary">Next Word</button>
+                            <button id="quitHangmanBtn" class="btn btn-outline" style="margin-left: 10px;">Quit</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats Section -->
+        <section id="stats" class="section">
+            <div class="section-header">
+                <h1>Statistics</h1>
+                <p>Track your vocabulary learning progress</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <i class="fas fa-book"></i>
+                    <h3 id="statTotal">0</h3>
+                    <p>Total Words</p>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-calendar-week"></i>
+                    <h3 id="statWeek">0</h3>
+                    <p>This Week</p>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-trophy"></i>
+                    <h3 id="statMastered">0</h3>
+                    <p>Mastered</p>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-fire"></i>
+                    <h3 id="statStreak">0</h3>
+                    <p>Day Streak</p>
+                </div>
+            </div>
+
+            <div class="stats-charts">
+                <div class="chart-card">
+                    <h3>Words Added Over Time</h3>
+                    <canvas id="wordsChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3>Parts of Speech Distribution</h3>
+                    <canvas id="posChart"></canvas>
+                </div>
+            </div>
+
+            <div class="mastery-levels">
+                <h3>Mastery Levels</h3>
+                <div class="mastery-bars" id="masteryBars"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Edit Word Modal -->
+    <div id="editWordModal" class="modal-overlay" style="display:none">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-edit"></i> Edit: <span id="editWordTitle"></span></h3>
+                <button class="btn-icon" onclick="closeEditModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <label>Part of Speech</label>
+                <input type="text" id="editPartOfSpeech">
+                <label>Related Topics (comma separated)</label>
+                <input type="text" id="editRelatedTopics">
+                <label>Meaning</label>
+                <textarea id="editMeaning" rows="3"></textarea>
+                <label>Example</label>
+                <textarea id="editExample" rows="2"></textarea>
+                <label>Phrases (comma separated)</label>
+                <input type="text" id="editPhrases">
+                <label>Synonyms (comma separated)</label>
+                <input type="text" id="editSynonyms">
+                <label>Antonyms (comma separated)</label>
+                <input type="text" id="editAntonyms">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline btn-sm" onclick="closeEditModal()">Cancel</button>
+                <button class="btn btn-primary btn-sm" onclick="saveEditWord()"><i class="fas fa-save"></i> Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LLM Settings Modal -->
+    <div id="llmSettingsModal" class="modal-overlay" style="display:none">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-robot"></i> AI Settings</h3>
+                <button class="btn-icon" id="closeLlmSettingsBtn"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <label>LLM Provider</label>
+                  <select id="llmProviderSelect" style="width:100%; margin-bottom:15px; padding:8px;">
+                      <option value="gemini-3.6-flash">Google Gemini 3.6 Flash (Recommended)</option>
+                      <option value="gemini-3.5-flash-lite">Google Gemini 3.5 Flash-Lite</option>
+                      <option value="openai">OpenAI (ChatGPT)</option>
+                      <option value="custom">Custom Endpoint (Ollama, LMStudio, etc.)</option>
+                  </select>
+                
+                <label>API Key</label>
+                <input type="password" id="llmApiKey" placeholder="sk-..." style="width:100%; margin-bottom:15px; padding:8px;">
+                <p style="font-size:0.8rem; color:var(--text-light); margin-top:-10px; margin-bottom:15px;">Your API key is securely stored in your browser's local storage and is only used to connect to the LLM.</p>
+                
+                <div id="llmCustomUrlGroup" style="display:none;">
+                    <label>Custom API URL</label>
+                    <input type="text" id="llmCustomUrl" placeholder="http://localhost:11434/v1/chat/completions" style="width:100%; margin-bottom:15px; padding:8px;">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline btn-sm" id="cancelLlmSettingsBtn">Cancel</button>
+                <button class="btn btn-primary btn-sm" id="saveLlmSettingsBtn"><i class="fas fa-save"></i> Save Settings</button>
+            </div>
+        </div>
+    </div>
+    <!-- Toast Notification -->
+    <div id="toast" class="toast hidden"></div>
+
+    <!-- Scripts -->
+    <!-- SheetJS for Excel Import -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>

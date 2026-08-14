@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "VocabVault Extension",
+  "version": "1.0",
+  "description": "Lookup words and save them to your vocabulary history directly from any webpage.",
+  "permissions": ["sidePanel", "activeTab", "scripting", "contextMenus"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "side_panel": {
+    "default_path": "index.html"
+  },
+  "action": {
+    "default_title": "Open VocabVault"
+  }
+}
