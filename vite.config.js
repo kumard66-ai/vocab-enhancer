@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  base: '/vocab-enhancer/',
+  base: './',
   server: {
     proxy: {
       '/api': {

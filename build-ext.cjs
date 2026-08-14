@@ -6,7 +6,7 @@ async function createZip() {
     try {
         const zip = new AdmZip();
         const distPath = path.join(__dirname, 'dist');
-        const outPath = path.join(__dirname, 'public', 'vocab-enhancer-extension.zip');
+        const outPath = path.join(__dirname, 'dist', 'vocab-enhancer-extension.zip');
 
         if (!fs.existsSync(distPath)) {
             console.error("dist folder not found. Run npm run build first.");
