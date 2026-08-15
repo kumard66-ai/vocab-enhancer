@@ -47,5 +47,22 @@ local_body = (
 )
 pdf.chapter_body(local_body)
 
+# Installing on Another PC
+pdf.chapter_title('Part 3: Installing on Another PC (with any Google Account)')
+other_pc_body = (
+    "Because VocabVault uses secure Google Sign-In, it must be installed correctly on new PCs to work.\n\n"
+    "FOR THE DEVELOPER (Before Sharing):\n"
+    "You MUST add your 'key' string (generated from your .pem file) to your manifest.json. "
+    "This locks your Extension ID permanently so it matches your Google Cloud Console Client ID everywhere.\n\n"
+    "FOR THE USER (On the New PC):\n"
+    "1. Transfer the exact same 'vocab-enhancer-extension.zip' to the new PC.\n"
+    "2. Extract the zip file into a permanent folder (e.g., inside Documents).\n"
+    "3. Open Chrome and navigate to chrome://extensions/.\n"
+    "4. Enable 'Developer mode' and click 'Load unpacked'.\n"
+    "5. Select the extracted folder.\n"
+    "6. Click the extension icon and click Login. You can now sign in with ANY Google Email ID!"
+)
+pdf.chapter_body(other_pc_body)
+
 pdf.output('VocabVault_Installation_Guide.pdf')
 print("PDF generated successfully.")
