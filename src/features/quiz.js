@@ -12,6 +12,19 @@ export function initQuiz() {
     });
     document.getElementById('nextQuestion').addEventListener('click', showNextQuestion);
     document.getElementById('nextMatchRound').addEventListener('click', () => showMatchRound(STATE.quizData.currentRound + 1));
+    document.querySelectorAll('.exit-quiz-btn').forEach(btn => {
+        btn.addEventListener('click', exitQuiz);
+    });
+}
+
+function exitQuiz() {
+    if (STATE.quizData && STATE.quizData.timer) {
+        clearInterval(STATE.quizData.timer);
+    }
+    document.getElementById('quizArea').classList.add('hidden');
+    document.getElementById('quizMatchingArea').classList.add('hidden');
+    document.getElementById('quizResults').classList.add('hidden');
+    document.getElementById('quizSetup').classList.remove('hidden');
 }
 
 function startQuiz() {
