@@ -1221,7 +1221,10 @@ Related Topics: [topic 1], [topic 2], [topic 3]`;
 
         if (provider.startsWith('gemini')) {
             let modelName = 'gemini-1.5-flash-latest';
-            if (provider === 'gemini-1.5-pro') modelName = 'gemini-1.5-pro-latest';
+            if (provider === 'gemini-3.5-flash-lite') modelName = 'gemini-3.5-flash-lite';
+            else if (provider === 'gemini-3.7-flash') modelName = 'gemini-3.7-flash';
+            else if (provider === 'gemini-3.1-pro') modelName = 'gemini-3.1-pro';
+            else if (provider === 'gemini-1.5-pro') modelName = 'gemini-1.5-pro-latest';
             else if (provider === 'gemini-1.5-flash-8b') modelName = 'gemini-1.5-flash-8b-latest';
             
             // Allow user override
