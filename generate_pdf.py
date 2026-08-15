@@ -37,13 +37,17 @@ pdf.chapter_body(ext_body)
 # Local Development
 pdf.chapter_title('Part 2: How to Run the App Locally (For Developers)')
 local_body = (
-    "1. Ensure you have Node.js installed on your machine (download from nodejs.org).\n"
-    "2. Download 'vocab-enhancer-source.zip' from the website.\n"
-    "3. Extract the zip file to a folder on your computer.\n"
-    "4. Open a terminal or command prompt inside that extracted folder.\n"
-    "5. Run the command: npm install (This will download all required dependencies).\n"
-    "6. Run the command: npm run dev (This will start the local development server).\n"
-    "7. Open the displayed Local URL (usually http://localhost:5173) in your web browser."
+    "HOW TO SETUP FOR LOCAL WEB:\n"
+    "1. Download and extract the 'vocab-enhancer-source.zip' (or clone via GitHub).\n"
+    "2. Open a terminal (Command Prompt) in that folder and run: npm install\n"
+    "3. Create a 'start.bat' file (or run in terminal): npm run dev\n"
+    "4. Double click your 'start.bat' to launch the local web server.\n"
+    "5. Open your browser and go to http://localhost:5173\n\n"
+    "HOW TO UPDATE YOUR LOCAL FOLDER:\n"
+    "1. If you used GitHub: Run 'git pull' in your terminal.\n"
+    "2. If you downloaded the ZIP: Download the latest source ZIP, extract it, and overwrite your old files.\n"
+    "3. Run 'npm install' in case there are new dependencies.\n"
+    "4. Double click your 'start.bat' again to restart the server!"
 )
 pdf.chapter_body(local_body)
 

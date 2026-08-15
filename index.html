@@ -903,15 +903,22 @@
                         <h2 style="margin-bottom: 0.5rem;">Run Locally (Dev)</h2>
                         <a href="vocab-enhancer-source.zip" download class="btn btn-outline" style="display: inline-block; margin-top: 1rem;"><i class="fas fa-code"></i> Download Source (.zip)</a>
                     </div>
-                    <h3 style="margin: 1.5rem 0 0.5rem; font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">Setup Instructions:</h3>
+                    <h3 style="margin: 1.5rem 0 0.5rem; font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">Initial Setup:</h3>
                     <ol style="padding-left: 1.5rem; line-height: 1.6; color: var(--text-muted);">
-                        <li>Ensure you have <a href="https://nodejs.org/" target="_blank" style="color: var(--primary);">Node.js</a> installed on your machine.</li>
-                        <li>Download the <strong>Source (.zip)</strong> using the button above.</li>
-                        <li>Extract the zip file to a folder.</li>
-                        <li>Open a terminal or command prompt inside that folder.</li>
-                        <li>Run the command: <code style="background: var(--bg-body); padding: 0.2rem 0.4rem; border-radius: 4px;">npm install</code> to install dependencies.</li>
-                        <li>Run the command: <code style="background: var(--bg-body); padding: 0.2rem 0.4rem; border-radius: 4px;">npm run dev</code> to start the local server.</li>
-                        <li>Open the displayed Local URL (usually http://localhost:5173) in your browser.</li>
+                        <li>Ensure you have <a href="https://nodejs.org/" target="_blank" style="color: var(--primary);">Node.js</a> installed on your computer.</li>
+                        <li>Download the <strong>Source Code (.zip)</strong> using the button above and extract it (or use <code>git clone</code>).</li>
+                        <li>Open a terminal (Command Prompt) inside the extracted folder.</li>
+                        <li>Run <code>npm install</code> to download all required dependencies.</li>
+                        <li>To start the server, create a <code>start.bat</code> file with the text <code>npm run dev</code> inside it, and double click it.</li>
+                        <li>Open your browser and navigate to <strong>http://localhost:5173</strong></li>
+                    </ol>
+
+                    <h3 style="margin: 1.5rem 0 0.5rem; font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">Updating Local Folder:</h3>
+                    <ol style="padding-left: 1.5rem; line-height: 1.6; color: var(--text-muted);">
+                        <li>If you used GitHub, simply run <code>git pull</code> in your terminal.</li>
+                        <li>If you downloaded the ZIP, download the latest source ZIP, extract it, and overwrite your old files.</li>
+                        <li>Run <code>npm install</code> again to grab any new dependencies.</li>
+                        <li>Double click your <code>start.bat</code> file to run the updated app!</li>
                     </ol>
                 </div>
             </div>
