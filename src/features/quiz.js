@@ -25,10 +25,8 @@ function startQuiz() {
     const snoFrom = parseInt(document.getElementById('quizSnoFrom').value) || 1;
     const snoTo = parseInt(document.getElementById('quizSnoTo').value) || STATE.words.length;
     
-    let wordPool = [...STATE.words];
-    // Filter by S.No (Note: STATE.words is typically reversed or needs sorting? 
-    // In history.js, S.No is based on chronological order or displayed order.
-    // Assuming S.No is the index in the original STATE.words array: 1 to length.)
+    // Reverse STATE.words so S.No 1 matches the top of the history list (newest first)
+    let wordPool = [...STATE.words].reverse();
     wordPool = wordPool.slice(snoFrom - 1, snoTo);
 
     if (wordPool.length < 4) {
@@ -61,7 +59,9 @@ function startQuiz() {
             ]);
         } else if (type === 'fill') {
             const example = word.example || `The word ${word.word} is used in everyday language.`;
-            question = example.replace(new RegExp(word.word, 'gi'), '________');
+            // safely escape word.word for regex
+            const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            question = example.replace(new RegExp(escapeRegExp(word.word), 'gi'), '________');
             correctAnswer = word.word;
             options = shuffleArray([
                 { text: word.word, correct: true },
@@ -69,7 +69,7 @@ function startQuiz() {
             ]);
         } else {
             question = `Which word is a synonym/related to "<strong>${word.word}</strong>"?`;
-            const synonymWord = word.synonyms?.[0] || word.meaning.split(' ').slice(0, 2).join(' ');
+            const synonymWord = word.synonyms?.[0] || (word.meaning || word.word).split(' ').slice(0, 2).join(' ');
             correctAnswer = synonymWord;
             options = shuffleArray([
                 { text: synonymWord, correct: true },

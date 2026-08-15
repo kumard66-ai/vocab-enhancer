@@ -1218,7 +1218,7 @@ Please provide the following to help me learn this word deeply:
 5. A list of 3 synonyms for the word.
 6. A list of 3 antonyms for the word.
 7. A list of 3 to 5 related topics, fields, or categories the word belongs to.
-8. The word's pronunciation or phonetic spelling (e.g. IPA or simple syllables) and syllable breakdown.
+8. The word's pronunciation and its syllable breakdown (breaking the spelling into parts for easy pronunciation).
 
 Format your response exactly like this:
 Mnemonic: [your mnemonic here]
