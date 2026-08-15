@@ -342,7 +342,8 @@ function fcLookupWord(e) {
     e.stopPropagation();
     const card = STATE.currentFlashcards[STATE.currentFcIndex];
     if (card) {
-        if (fcOverlay.classList.contains('active')) toggleFullscreenFlashcard();
+        const overlay = document.getElementById('fcOverlay');
+        if (overlay && overlay.classList.contains('active')) toggleFullscreenFlashcard();
         document.querySelector('.nav-links a[data-tab="search"]').click();
         const searchInput = document.getElementById('wordInput');
         if (searchInput) searchInput.value = card.word;
