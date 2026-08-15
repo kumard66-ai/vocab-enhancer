@@ -202,31 +202,11 @@ function showCard(index) {
     const jumpSelect = document.getElementById('fcJumpToCard');
     if (jumpSelect) jumpSelect.value = index;
 
-    // Highlight current rating button based on mastery
     const wordEntry = STATE.words.find(w => w.id === card.id);
     const mastery = wordEntry ? wordEntry.mastery : 'new';
-    
-    // Reset all buttons
-    document.querySelectorAll('.fc-rate').forEach(btn => {
-        btn.style.opacity = '0.4';
-        btn.style.border = 'none';
-        btn.style.boxShadow = 'none';
-        btn.style.transform = 'scale(0.9)';
-    });
 
-    // Highlight active button
-    let activeBtnIndex = 0; // Default: Don't know
-    if (mastery === 'learning' || mastery === 'familiar') activeBtnIndex = 1;
-    if (mastery === 'mastered') activeBtnIndex = 2;
-    
-    const activeBtn = document.querySelectorAll('.fc-rate')[activeBtnIndex];
-    if (activeBtn) {
-        activeBtn.style.opacity = '1';
-        activeBtn.style.border = '2px solid var(--primary)';
-        activeBtn.style.boxShadow = '0 0 8px rgba(0,0,0,0.2)';
-        activeBtn.style.transform = 'scale(1.1)';
-        activeBtn.style.transition = 'all 0.2s ease-in-out';
-    }
+    // Update highlight
+    updateRatingHighlight(mastery);
 
     // Remove any previously injected images
     const oldImg = document.getElementById('fcInjectedImg');
@@ -292,8 +272,40 @@ function rateCard(rating) {
         else wordEntry.mastery = 'new';
         saveWords();
         updateRatingCounts();
+        updateRatingHighlight(wordEntry.mastery);
     }
-    nextCard();
+}
+
+function updateRatingHighlight(mastery) {
+    // Reset all buttons
+    document.querySelectorAll('.fc-rate').forEach(btn => {
+        btn.style.opacity = '0.4';
+        btn.style.border = 'none';
+        btn.style.boxShadow = 'none';
+        btn.style.transform = 'scale(0.9)';
+    });
+
+    // Highlight active button with matching colors
+    let activeBtnIndex = 0; // Default: Don't know
+    let activeColor = '#dc3545'; // Danger (Red)
+    
+    if (mastery === 'learning' || mastery === 'familiar') { 
+        activeBtnIndex = 1; 
+        activeColor = '#ffc107'; // Warning (Yellow)
+    }
+    if (mastery === 'mastered') { 
+        activeBtnIndex = 2; 
+        activeColor = '#198754'; // Success (Green)
+    }
+    
+    const activeBtn = document.querySelectorAll('.fc-rate')[activeBtnIndex];
+    if (activeBtn) {
+        activeBtn.style.opacity = '1';
+        activeBtn.style.border = `3px solid ${activeColor}`;
+        activeBtn.style.boxShadow = `0 0 12px ${activeColor}`;
+        activeBtn.style.transform = 'scale(1.15)';
+        activeBtn.style.transition = 'all 0.2s ease-in-out';
+    }
 }
 
 function updateFlashcardTheme() {
