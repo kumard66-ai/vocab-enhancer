@@ -18,7 +18,29 @@ export function initAuth() {
 
 export async function signInWithGoogle() {
     try {
-        await auth.signInWithPopup(googleProvider);
+        // If we are inside the Chrome Extension environment
+        if (typeof chrome !== 'undefined' && chrome.identity) {
+            chrome.identity.getAuthToken({ interactive: true }, async (token) => {
+                if (chrome.runtime.lastError || !token) {
+                    console.error("Auth Token Error:", chrome.runtime.lastError);
+                    showToast('Sign-in failed: ' + (chrome.runtime.lastError?.message || 'Token empty'), 'error');
+                    return;
+                }
+                
+                try {
+                    // Create a Firebase credential with the Chrome Auth Token
+                    const credential = firebase.auth.GoogleAuthProvider.credential(null, token);
+                    await auth.signInWithCredential(credential);
+                    showToast('Signed in successfully!', 'success');
+                } catch (credErr) {
+                    console.error("Firebase Credential Error:", credErr);
+                    showToast('Sign-in failed: ' + credErr.message, 'error');
+                }
+            });
+        } else {
+            // Local web development environment
+            await auth.signInWithPopup(googleProvider);
+        }
     } catch (err) {
         if (err.code !== 'auth/popup-closed-by-user') {
             showToast('Sign-in failed: ' + err.message, 'error');
