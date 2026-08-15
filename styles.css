@@ -1112,15 +1112,17 @@ body {
 
 .fc-controls-fullscreen {
     position: fixed !important;
-    bottom: 20px;
+    bottom: 30px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 10000;
     background: var(--bg-card);
-    padding: 15px 30px;
+    padding: 12px 25px;
     border-radius: 50px;
-    box-shadow: 0 4px 25px rgba(0,0,0,0.4);
+    box-shadow: 0 6px 30px rgba(0,0,0,0.5);
     border: 1px solid var(--border);
+    width: fit-content !important;
+    gap: 2rem !important;
 }
 
 .flashcard-inner {
