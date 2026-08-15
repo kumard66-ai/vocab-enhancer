@@ -6,9 +6,14 @@ import firebase from 'firebase/compat/app';
 export function initAuth() {
     const loginBtn = document.getElementById('loginBtn');
     const logoutBtn = document.getElementById('logoutBtn');
+    const syncBtn = document.getElementById('syncStatus');
 
     if (loginBtn) loginBtn.addEventListener('click', signInWithGoogle);
     if (logoutBtn) logoutBtn.addEventListener('click', signOut);
+    if (syncBtn) {
+        syncBtn.style.cursor = 'pointer';
+        syncBtn.addEventListener('click', forcePullFromCloud);
+    }
 
     // Listen to auth state
     if (typeof auth !== 'undefined') {
@@ -110,6 +115,35 @@ export async function loadFromCloud() {
     }
 }
 
+export async function forcePullFromCloud() {
+    if (!STATE.userId) return;
+    setSyncStatus('syncing');
+
+    try {
+        const doc = await db.collection('users').doc(STATE.userId).get();
+        if (doc.exists) {
+            const cloudData = doc.data();
+            
+            // Hard overwrite to reflect deletions
+            STATE.words = cloudData.words || [];
+            if (cloudData.streak) STATE.streak = cloudData.streak;
+            
+            saveStateToLocal();
+            
+            if (window.renderHistory) window.renderHistory();
+            if (window.renderStats) window.renderStats();
+
+            showToast('Refreshed data from cloud!', 'success');
+        } else {
+            showToast('No cloud data found.', 'info');
+        }
+        setSyncStatus('synced');
+    } catch (err) {
+        setSyncStatus('offline');
+        showToast('Refresh failed: ' + err.message, 'error');
+    }
+}
+
 export async function saveToCloud() {
     if (!STATE.userId) return;
     setSyncStatus('syncing');
@@ -145,7 +179,7 @@ export function setSyncStatus(status) {
     const el = document.getElementById('syncStatus');
     if (!el) return;
     el.className = 'sync-status ' + (status === 'syncing' ? 'syncing' : status === 'offline' ? 'offline' : '');
-    el.title = status === 'synced' ? 'Synced to cloud' : status === 'syncing' ? 'Syncing...' : 'Offline';
+    el.title = status === 'synced' ? 'Synced! Click to refresh from cloud.' : status === 'syncing' ? 'Syncing...' : 'Offline. Click to retry.';
     const icon = el.querySelector('i');
     if (icon) icon.className = status === 'synced' ? 'fas fa-cloud' : status === 'syncing' ? 'fas fa-sync fa-spin' : 'fas fa-cloud-slash';
 }
