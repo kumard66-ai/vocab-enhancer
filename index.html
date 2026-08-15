@@ -600,16 +600,25 @@
                     <button id="fcPrev" class="btn btn-outline">
                         <i class="fas fa-arrow-left"></i> Previous
                     </button>
-                    <div class="fc-rating">
-                        <button class="btn btn-danger btn-sm fc-rate" data-rating="1" title="Don't know">
-                            <i class="fas fa-times"></i>
-                        </button>
-                        <button class="btn btn-warning btn-sm fc-rate" data-rating="2" title="Somewhat know">
-                            <i class="fas fa-minus"></i>
-                        </button>
-                        <button class="btn btn-success btn-sm fc-rate" data-rating="3" title="Know well">
-                            <i class="fas fa-check"></i>
-                        </button>
+                    <div class="fc-rating" style="display:flex; gap:10px; text-align:center;">
+                        <div>
+                            <button class="btn btn-danger btn-sm fc-rate" data-rating="1" title="Don't know" style="width:40px; height:40px;">
+                                <i class="fas fa-times"></i>
+                            </button>
+                            <div style="font-size:0.75rem; margin-top:2px; font-weight:600;" id="fcCount1">0</div>
+                        </div>
+                        <div>
+                            <button class="btn btn-warning btn-sm fc-rate" data-rating="2" title="Somewhat know" style="width:40px; height:40px;">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <div style="font-size:0.75rem; margin-top:2px; font-weight:600;" id="fcCount2">0</div>
+                        </div>
+                        <div>
+                            <button class="btn btn-success btn-sm fc-rate" data-rating="3" title="Know well" style="width:40px; height:40px;">
+                                <i class="fas fa-check"></i>
+                            </button>
+                            <div style="font-size:0.75rem; margin-top:2px; font-weight:600;" id="fcCount3">0</div>
+                        </div>
                     </div>
                     <button id="fcNext" class="btn btn-outline">
                         Next <i class="fas fa-arrow-right"></i>

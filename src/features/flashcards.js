@@ -78,7 +78,30 @@ function generateFlashcards() {
     document.getElementById('fcEmpty').classList.add('hidden');
     document.getElementById('fcTotal').textContent = cards.length;
 
+    updateRatingCounts();
     showCard(0);
+}
+
+function updateRatingCounts() {
+    let count1 = 0, count2 = 0, count3 = 0;
+    if (STATE.currentFlashcards) {
+        STATE.currentFlashcards.forEach(card => {
+            const wordEntry = STATE.words.find(w => w.id === card.id);
+            if (wordEntry) {
+                if (wordEntry.mastery === 'mastered') count3++;
+                else if (wordEntry.mastery === 'learning' || wordEntry.mastery === 'familiar') count2++;
+                else count1++;
+            } else {
+                count1++;
+            }
+        });
+    }
+    const c1 = document.getElementById('fcCount1');
+    const c2 = document.getElementById('fcCount2');
+    const c3 = document.getElementById('fcCount3');
+    if (c1) c1.textContent = count1;
+    if (c2) c2.textContent = count2;
+    if (c3) c3.textContent = count3;
 }
 
 function showCard(index) {
@@ -94,7 +117,10 @@ function showCard(index) {
 
     const fcColor = document.getElementById('fcColor') ? document.getElementById('fcColor').value : 'default';
     const flashcardEl = document.getElementById('flashcard');
+    const isFullscreen = flashcardEl.classList.contains('flashcard-fullscreen');
     flashcardEl.className = 'flashcard'; // Reset classes
+    if (isFullscreen) flashcardEl.classList.add('flashcard-fullscreen');
+    
     if (fcColor !== 'default') {
         flashcardEl.classList.add(`theme-${fcColor}`);
     }
@@ -239,6 +265,7 @@ function rateCard(rating) {
         else if (rating === 2) wordEntry.mastery = 'learning';
         else wordEntry.mastery = 'new';
         saveWords();
+        updateRatingCounts();
     }
     nextCard();
 }
@@ -319,6 +346,14 @@ document.addEventListener('keydown', (e) => {
     
     // Ignore if typing in an input/textarea (like edit modal or the jump to select)
     if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
+
+    if (e.code === 'Escape') {
+        const fcOverlay = document.getElementById('fcOverlay');
+        if (fcOverlay && fcOverlay.classList.contains('active')) {
+            toggleFullscreenFlashcard();
+        }
+        return;
+    }
 
     if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'ArrowDown') {
         e.preventDefault();
