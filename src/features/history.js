@@ -119,7 +119,7 @@ export function initHistory() {
     window.renderHistory = renderHistory;
 
     // Event delegation for history table buttons (Required for Extension MV3 CSP)
-    const tbody = document.getElementById('historyTableBody');
+    const tbody = document.getElementById('historyBody');
     if (tbody) {
         tbody.addEventListener('click', (e) => {
             const btn = e.target.closest('button');
