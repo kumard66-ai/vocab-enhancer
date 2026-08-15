@@ -61,5 +61,18 @@ other_pc_body = (
 )
 pdf.chapter_body(other_pc_body)
 
+# Updating the Extension
+pdf.chapter_title('Part 4: Updating the Extension')
+update_body = (
+    "When you download a new version of the extension, you do not need to uninstall or reinstall it. "
+    "Follow these fast steps to update without losing settings or needing to log in again:\n\n"
+    "1. Download the latest 'vocab-enhancer-extension.zip'.\n"
+    "2. Extract the contents and OVERWRITE the files in your existing extension folder.\n"
+    "3. Open Chrome and go to chrome://extensions/.\n"
+    "4. Find the VocabVault extension card and click the circular 'Reload' icon.\n"
+    "5. The extension is now instantly updated!"
+)
+pdf.chapter_body(update_body)
+
 pdf.output('VocabVault_Installation_Guide.pdf')
 print("PDF generated successfully.")
