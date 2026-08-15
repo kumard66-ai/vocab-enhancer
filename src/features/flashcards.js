@@ -328,7 +328,7 @@ function toggleFullscreenFlashcard(e) {
     if (e) e.stopPropagation();
     const fc = document.getElementById('flashcard');
     const overlay = document.getElementById('fcOverlay');
-    const controls = document.querySelector('.fc-controls');
+    const controls = document.querySelector('.fc-nav');
     
     fc.classList.toggle('flashcard-fullscreen');
     overlay.classList.toggle('active');
@@ -344,7 +344,10 @@ function fcLookupWord(e) {
     if (card) {
         const overlay = document.getElementById('fcOverlay');
         if (overlay && overlay.classList.contains('active')) toggleFullscreenFlashcard();
-        document.querySelector('.nav-links a[data-tab="search"]').click();
+        
+        const lookupTab = document.querySelector('.nav-links a[data-section="lookup"]');
+        if (lookupTab) lookupTab.click();
+        
         const searchInput = document.getElementById('wordInput');
         if (searchInput) searchInput.value = card.word;
         const searchBtn = document.getElementById('searchBtn');
