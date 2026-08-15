@@ -1435,6 +1435,65 @@ body {
     border-radius: var(--radius);
 }
 
+.matching-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.matching-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.match-item {
+    padding: 1rem;
+    background: var(--bg-card);
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 0.9rem;
+    user-select: none;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    min-height: 3.5rem;
+}
+
+.match-item:hover:not(.disabled) {
+    border-color: var(--primary);
+    background: var(--primary-light);
+}
+
+.match-item.selected {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+.match-item.matched {
+    border-color: var(--success);
+    background: #d1fae5;
+    color: #065f46;
+    pointer-events: none;
+}
+
+.match-item.wrong-match {
+    animation: shake 0.4s;
+    border-color: var(--danger);
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
 .results-circle {
     width: 120px;
     height: 120px;
@@ -2146,6 +2205,11 @@ body {
 
     .quiz-options-grid {
         grid-template-columns: 1fr;
+    }
+
+    .matching-columns {
+        grid-template-columns: 1fr;
+        gap: 1rem;
     }
 
     .flashcard {

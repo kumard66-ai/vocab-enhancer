@@ -677,6 +677,7 @@
                             <option value="word">Meaning &rarr; Word</option>
                             <option value="fill">Fill in the Blank</option>
                             <option value="synonym">Synonym Match</option>
+                            <option value="match">Matching Columns</option>
                         </select>
                     </div>
                     <div class="quiz-option-group">
@@ -711,6 +712,22 @@
                 <div class="quiz-question" id="quizQuestion"></div>
                 <div class="quiz-options-grid" id="quizOptions"></div>
                 <button id="nextQuestion" class="btn btn-primary hidden">Next Question <i class="fas fa-arrow-right"></i></button>
+            </div>
+
+            <!-- Matching Quiz Area -->
+            <div id="quizMatchingArea" class="quiz-area hidden">
+                <div class="quiz-header">
+                    <span class="quiz-progress">Round <span id="quizMatchRound">1</span></span>
+                    <span class="quiz-score">Matched: <span id="quizMatchScore">0</span></span>
+                </div>
+                <p style="text-align:center; margin-bottom: 1rem; color: var(--text-muted);">Tap a word on the left, then tap its meaning on the right.</p>
+                
+                <div class="matching-columns">
+                    <div class="matching-col" id="matchColLeft"></div>
+                    <div class="matching-col" id="matchColRight"></div>
+                </div>
+
+                <button id="nextMatchRound" class="btn btn-primary hidden" style="margin-top: 1.5rem;">Next Round <i class="fas fa-arrow-right"></i></button>
             </div>
 
             <div id="quizResults" class="quiz-results hidden">
