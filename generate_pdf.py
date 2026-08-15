@@ -44,13 +44,12 @@ local_body = (
     "   - Open Notepad.\n"
     "   - Type exactly: npm run dev\n"
     "   - Click File > Save As, name it 'start.bat', and save it inside your local folder.\n"
-    "4. Double click your new 'start.bat' to launch the local web server.\n"
-    "5. Open your browser and go to http://localhost:5173\n\n"
+    "4. Double click your new 'start.bat'. It will turn on the server and automatically open your web browser to http://localhost:5173!\n\n"
     "HOW TO UPDATE YOUR LOCAL FOLDER:\n"
     "1. If you used GitHub: Run 'git pull origin master' in your terminal.\n"
     "2. If you downloaded the ZIP: Download the latest source ZIP, extract it, and overwrite your old files.\n"
     "3. Run 'npm install' in case there are new dependencies.\n"
-    "4. Double click your 'start.bat' again to restart the server!"
+    "4. Double click your 'start.bat' again to restart the server and open the browser!"
 )
 pdf.chapter_body(local_body)
 
