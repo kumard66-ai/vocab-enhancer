@@ -658,34 +658,20 @@ body {
 }
 
 /* Column widths */
-#historyTable th:nth-child(1),
-#historyTable td:nth-child(1) { width: 35px; }  /* # */
-#historyTable th:nth-child(2),
-#historyTable td:nth-child(2) { width: 95px; }  /* Word */
-#historyTable th:nth-child(3),
-#historyTable td:nth-child(3) { width: 100px; } /* Pronunciation */
-#historyTable th:nth-child(4),
-#historyTable td:nth-child(4) { width: 75px; }  /* POS */
-#historyTable th:nth-child(5),
-#historyTable td:nth-child(5) { width: 9%; }    /* Related Topics */
-#historyTable th:nth-child(6),
-#historyTable td:nth-child(6) { width: 15%; }   /* Meaning */
-#historyTable th:nth-child(7),
-#historyTable td:nth-child(7) { width: 15%; }   /* AI Mnemonic */
-#historyTable th:nth-child(8),
-#historyTable td:nth-child(8) { width: 13%; }   /* Example */
-#historyTable th:nth-child(9),
-#historyTable td:nth-child(9) { width: 9%; }    /* Phrases */
-#historyTable th:nth-child(10),
-#historyTable td:nth-child(10) { width: 9%; }   /* Synonyms */
-#historyTable th:nth-child(11),
-#historyTable td:nth-child(11) { width: 9%; }   /* Antonyms */
-#historyTable th:nth-child(12),
-#historyTable td:nth-child(12) { width: 70px; } /* Source */
-#historyTable th:nth-child(13),
-#historyTable td:nth-child(13) { width: 75px; } /* Date */
-#historyTable th:nth-child(14),
-#historyTable td:nth-child(14) { 
+#historyTable th:nth-child(1) { width: 35px; }  /* # */
+#historyTable th:nth-child(2) { width: 95px; }  /* Word */
+#historyTable th:nth-child(3) { width: 100px; } /* Pronunciation */
+#historyTable th:nth-child(4) { width: 75px; }  /* POS */
+#historyTable th:nth-child(5) { width: 9%; }    /* Related Topics */
+#historyTable th:nth-child(6) { width: 15%; }   /* Meaning */
+#historyTable th:nth-child(7) { width: 15%; }   /* AI Mnemonic */
+#historyTable th:nth-child(8) { width: 13%; }   /* Example */
+#historyTable th:nth-child(9) { width: 9%; }    /* Phrases */
+#historyTable th:nth-child(10) { width: 9%; }   /* Synonyms */
+#historyTable th:nth-child(11) { width: 9%; }   /* Antonyms */
+#historyTable th:nth-child(12) { width: 70px; } /* Source */
+#historyTable th:nth-child(13) { width: 75px; } /* Date */
+#historyTable th:nth-child(14) { 
     width: 90px; 
     position: sticky; 
     right: 0; 

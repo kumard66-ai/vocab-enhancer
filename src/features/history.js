@@ -57,6 +57,8 @@ export function initHistory() {
     const copyExcelBtn = document.getElementById('copyExcel');
     if (copyExcelBtn) copyExcelBtn.addEventListener('click', copyToExcel);
 
+    initResizableColumns();
+
     // Edit Image Preview Logic
     const editImageInput = document.getElementById('editImageInput');
     if (editImageInput) {
@@ -472,4 +474,79 @@ async function importExcel(e) {
     
     // Reset file input
     e.target.value = "";
+}
+
+function initResizableColumns() {
+    const table = document.getElementById('historyTable');
+    if (!table) return;
+    const cols = table.querySelectorAll('th');
+    
+    // Load saved widths
+    const savedWidths = JSON.parse(localStorage.getItem('fcTableWidths') || '{}');
+
+    cols.forEach((col, index) => {
+        // Apply saved width if exists
+        if (savedWidths[index]) {
+            col.style.width = savedWidths[index] + 'px';
+        }
+
+        // Don't add resizer to the last column (Actions) since it's sticky right
+        if (index === cols.length - 1) return;
+
+        // Create resizer div
+        const resizer = document.createElement('div');
+        resizer.classList.add('resizer');
+        resizer.style.position = 'absolute';
+        resizer.style.right = '0';
+        resizer.style.top = '0';
+        resizer.style.width = '5px';
+        resizer.style.height = '100%';
+        resizer.style.cursor = 'col-resize';
+        resizer.style.userSelect = 'none';
+        resizer.style.zIndex = '10';
+        // Add a visible border on hover
+        resizer.onmouseenter = () => resizer.style.background = 'var(--primary)';
+        resizer.onmouseleave = () => resizer.style.background = 'transparent';
+        
+        col.style.position = 'relative'; 
+        col.appendChild(resizer);
+
+        let startX, startWidth;
+
+        resizer.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            e.stopPropagation(); // Prevent sorting
+            startX = e.pageX;
+            startWidth = col.offsetWidth;
+
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+            
+            // Add a class to body to prevent text selection during drag
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+        });
+
+        function onMouseMove(e) {
+            const newWidth = startWidth + (e.pageX - startX);
+            // Minimum width of 30px
+            if (newWidth > 30) {
+                col.style.width = newWidth + 'px';
+            }
+        }
+
+        function onMouseUp(e) {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+            
+            // Save all current widths
+            const newWidths = {};
+            table.querySelectorAll('th').forEach((th, i) => {
+                newWidths[i] = th.offsetWidth;
+            });
+            localStorage.setItem('fcTableWidths', JSON.stringify(newWidths));
+        }
+    });
 }
