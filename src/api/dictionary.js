@@ -17,42 +17,47 @@ export function initSearch() {
 
     // AI UI Bindings
     const llmSettingsBtn = document.getElementById('llmSettingsBtn');
-    const llmSettingsModal = document.getElementById('llmSettingsModal');
-    const closeLlmSettingsBtn = document.getElementById('closeLlmSettingsBtn');
-    const cancelLlmSettingsBtn = document.getElementById('cancelLlmSettingsBtn');
-    const saveLlmSettingsBtn = document.getElementById('saveLlmSettingsBtn');
-    const llmProviderSelect = document.getElementById('llmProviderSelect');
-    const llmCustomUrlGroup = document.getElementById('llmCustomUrlGroup');
-    
-    // Load saved settings
-    if (STATE.llmSettings) {
-        if (STATE.llmSettings.provider) llmProviderSelect.value = STATE.llmSettings.provider;
-        if (STATE.llmSettings.apiKey) document.getElementById('llmApiKey').value = STATE.llmSettings.apiKey;
-        if (STATE.llmSettings.customUrl) document.getElementById('llmCustomUrl').value = STATE.llmSettings.customUrl;
-    }
-    
-    llmProviderSelect.addEventListener('change', () => {
+    function setupLlmSettingsModal() {
+        const llmSettingsModal = document.getElementById('llmSettingsModal');
+        const closeLlmSettingsBtn = document.getElementById('closeLlmSettingsBtn');
+        const cancelLlmSettingsBtn = document.getElementById('cancelLlmSettingsBtn');
+        const saveLlmSettingsBtn = document.getElementById('saveLlmSettingsBtn');
+        const llmProviderSelect = document.getElementById('llmProviderSelect');
+        const llmCustomUrlGroup = document.getElementById('llmCustomUrlGroup');
+        
+        // Load saved settings
+        if (STATE.llmSettings) {
+            if (STATE.llmSettings.provider) llmProviderSelect.value = STATE.llmSettings.provider;
+            if (STATE.llmSettings.modelName) document.getElementById('llmModelName').value = STATE.llmSettings.modelName;
+            if (STATE.llmSettings.apiKey) document.getElementById('llmApiKey').value = STATE.llmSettings.apiKey;
+            if (STATE.llmSettings.customUrl) document.getElementById('llmCustomUrl').value = STATE.llmSettings.customUrl;
+        }
+        
+        llmProviderSelect.addEventListener('change', () => {
+            llmCustomUrlGroup.style.display = llmProviderSelect.value === 'custom' ? 'block' : 'none';
+        });
+        // trigger initial state
         llmCustomUrlGroup.style.display = llmProviderSelect.value === 'custom' ? 'block' : 'none';
-    });
-    // trigger initial state
-    llmCustomUrlGroup.style.display = llmProviderSelect.value === 'custom' ? 'block' : 'none';
 
-    const closeLlmModal = () => { llmSettingsModal.style.display = 'none'; };
-    llmSettingsBtn.addEventListener('click', () => { llmSettingsModal.style.display = 'flex'; });
-    closeLlmSettingsBtn.addEventListener('click', closeLlmModal);
-    cancelLlmSettingsBtn.addEventListener('click', closeLlmModal);
-    saveLlmSettingsBtn.addEventListener('click', () => {
-        STATE.llmSettings = {
-            mode: 'ai',
-            provider: llmProviderSelect.value,
-            apiKey: document.getElementById('llmApiKey').value,
-            customUrl: document.getElementById('llmCustomUrl').value
-        };
-        saveStateToLocal();
+        const closeLlmModal = () => { llmSettingsModal.style.display = 'none'; };
+        llmSettingsBtn.addEventListener('click', () => { llmSettingsModal.style.display = 'flex'; });
+        closeLlmSettingsBtn.addEventListener('click', closeLlmModal);
+        cancelLlmSettingsBtn.addEventListener('click', closeLlmModal);
+        saveLlmSettingsBtn.addEventListener('click', () => {
+            STATE.llmSettings = {
+                mode: 'ai',
+                provider: llmProviderSelect.value,
+                modelName: document.getElementById('llmModelName').value.trim(),
+                apiKey: document.getElementById('llmApiKey').value,
+                customUrl: document.getElementById('llmCustomUrl').value
+            };
+            saveStateToLocal();
 
-        showToast('AI Settings saved successfully');
-        closeLlmModal();
-    });
+            showToast('AI Settings saved successfully');
+            closeLlmModal();
+        });
+    }
+    setupLlmSettingsModal();
 
     // Check AI key on load
     if (!STATE.llmSettings || !STATE.llmSettings.apiKey) {
@@ -869,6 +874,7 @@ function displayWordResult(data) {
 
         generateAIContext({
             provider: STATE.llmSettings.provider,
+            modelName: STATE.llmSettings.modelName,
             apiKey: STATE.llmSettings.apiKey,
             customUrl: STATE.llmSettings.customUrl,
             word: data.word,
@@ -1184,7 +1190,7 @@ function saveCurrentWord() {
 }
 
 async function generateAIContext(params) {
-    const { provider, apiKey, customUrl, word, meanings } = params;
+    const { provider, modelName: customModelName, apiKey, customUrl, word, meanings } = params;
     
     if (!provider || !apiKey || !word) {
         return { error: 'Missing required parameters (provider, apiKey, word)' };
@@ -1217,6 +1223,11 @@ Related Topics: [topic 1], [topic 2], [topic 3]`;
             let modelName = 'gemini-1.5-flash-latest';
             if (provider === 'gemini-1.5-pro') modelName = 'gemini-1.5-pro-latest';
             else if (provider === 'gemini-1.5-flash-8b') modelName = 'gemini-1.5-flash-8b-latest';
+            
+            // Allow user override
+            if (customModelName && customModelName.trim() !== '') {
+                modelName = customModelName.trim();
+            }
             
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
             const response = await fetch(apiUrl, {
