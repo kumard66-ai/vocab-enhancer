@@ -2,8 +2,11 @@ import { searchWord } from './api/dictionary.js';
 window.searchWord = searchWord;
 // ===== VocabVault - Main Application =====
 
-import { STATE, saveStateToLocal } from './state.js';
+import { STATE, saveStateToLocal, setCloudSaveFn } from './state.js';
 import { initAuth, signInWithGoogle, signOut, handleAuthChange, loadFromCloud, saveToCloud, setSyncStatus } from './services/firebase.js';
+
+// Attach the cloud sync hook so any local saves are pushed to Firebase automatically
+setCloudSaveFn(saveToCloud);
 import { showToast, truncate, formatDate, shuffleArray } from './utils.js';
 
 import { initSearch } from './api/dictionary.js';

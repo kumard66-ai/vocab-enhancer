@@ -14,5 +14,14 @@ export function saveStateToLocal() {
     localStorage.setItem('vocabStreak', JSON.stringify(STATE.streak));
     localStorage.setItem('vocabLlmSettings', JSON.stringify(STATE.llmSettings));
 }
+let cloudSaveFn = null;
+export function setCloudSaveFn(fn) {
+    cloudSaveFn = fn;
+}
 
-export const saveWords = saveStateToLocal;
+export function saveWords() {
+    saveStateToLocal();
+    if (cloudSaveFn) {
+        cloudSaveFn();
+    }
+}
