@@ -109,7 +109,7 @@ export function initHistory() {
     // Also add autocomplete to history search
     initAutocomplete(document.getElementById('historySearch'));
 
-    // Expose functions to global scope for inline onclick handlers
+    // Expose functions to global scope for inline onclick handlers (Fallback for website)
     window.pronounceHistoryWord = pronounceHistoryWord;
     window.lookupHistoryWord = lookupHistoryWord;
     window.openEditModal = openEditModal;
@@ -117,6 +117,25 @@ export function initHistory() {
     window.closeEditModal = closeEditModal;
     window.saveEditWord = saveEditWord;
     window.renderHistory = renderHistory;
+
+    // Event delegation for history table buttons (Required for Extension MV3 CSP)
+    const tbody = document.getElementById('historyTableBody');
+    if (tbody) {
+        tbody.addEventListener('click', (e) => {
+            const btn = e.target.closest('button');
+            if (!btn) return;
+            
+            if (btn.classList.contains('btn-lookup')) {
+                lookupHistoryWord(btn.dataset.word);
+            } else if (btn.classList.contains('btn-edit')) {
+                openEditModal(Number(btn.dataset.id));
+            } else if (btn.classList.contains('btn-delete')) {
+                deleteWord(Number(btn.dataset.id));
+            } else if (btn.classList.contains('btn-pronounce')) {
+                pronounceHistoryWord(btn.dataset.word, btn.dataset.audio);
+            }
+        });
+    }
 }
 
 function renderHistory() {
@@ -212,7 +231,7 @@ function renderHistory() {
             <td><strong>${w.word}</strong></td>
             <td>
                 <span>${w.phonetic || ''}</span>
-                <button class="btn-icon btn-pronounce" onclick="pronounceHistoryWord('${w.word}', '${w.audio || ''}')" title="Listen">
+                <button class="btn-icon btn-pronounce" data-word="${w.word}" data-audio="${w.audio || ''}" title="Listen">
                     <i class="fas fa-volume-up"></i>
                 </button>
             </td>
@@ -227,13 +246,13 @@ function renderHistory() {
             <td>${w.sources && w.sources.length ? w.sources.map(s => `<a href="${getSourceUrl(s, w.word) || '#'}" target="_blank" class="source-link">${getSourceLabel(s)}</a>`).join(' ') : (w.source ? `<a href="${getSourceUrl(w.source, w.word) || '#'}" target="_blank" class="source-link">${getSourceLabel(w.source)}</a>` : '-')}</td>
             <td>${formatDate(w.dateAdded)}</td>
             <td>
-                <button class="btn-icon" onclick="lookupHistoryWord('${w.word}')" title="Lookup">
+                <button class="btn-icon btn-lookup" data-word="${w.word}" title="Lookup">
                     <i class="fas fa-search"></i>
                 </button>
-                <button class="btn-icon" onclick="openEditModal(${w.id})" title="Edit" style="color:var(--primary)">
+                <button class="btn-icon btn-edit" data-id="${w.id}" title="Edit" style="color:var(--primary)">
                     <i class="fas fa-edit"></i>
                 </button>
-                <button class="btn-icon" onclick="deleteWord(${w.id})" title="Delete" style="color:var(--danger)">
+                <button class="btn-icon btn-delete" data-id="${w.id}" title="Delete" style="color:var(--danger)">
                     <i class="fas fa-trash"></i>
                 </button>
             </td>
