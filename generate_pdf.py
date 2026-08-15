@@ -44,7 +44,7 @@ local_body = (
     "4. Double click your 'start.bat' to launch the local web server.\n"
     "5. Open your browser and go to http://localhost:5173\n\n"
     "HOW TO UPDATE YOUR LOCAL FOLDER:\n"
-    "1. If you used GitHub: Run 'git pull' in your terminal.\n"
+    "1. If you used GitHub: Run 'git pull origin master' in your terminal.\n"
     "2. If you downloaded the ZIP: Download the latest source ZIP, extract it, and overwrite your old files.\n"
     "3. Run 'npm install' in case there are new dependencies.\n"
     "4. Double click your 'start.bat' again to restart the server!"
