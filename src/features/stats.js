@@ -2,6 +2,7 @@
 import { STATE, saveStateToLocal } from '../state.js';
 import { formatDate } from '../utils.js';
 import { saveToCloud } from '../services/firebase.js';
+import Chart from 'chart.js/auto';
 
 // --- Stats ---
 export function initStats() {
@@ -20,9 +21,11 @@ function renderStats() {
     document.getElementById('statMastered').textContent = mastered;
     document.getElementById('statStreak').textContent = STATE.streak.count;
 
-    // Words over time chart
-    renderWordsChart();
-    renderPosChart();
+    // Charts
+    if (document.getElementById('wordsChart')) {
+        renderWordsChart();
+        renderPosChart();
+    }
     renderMasteryBars();
 }
 
