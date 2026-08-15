@@ -886,6 +886,7 @@ function displayWordResult(data) {
                 document.getElementById('aiMnemonic').textContent = 'AI Error: ' + aiData.error;
             } else {
                 let aiHtml = `<p><strong>Mnemonic:</strong> ${aiData.mnemonic}</p>`;
+                if (aiData.pronunciation) aiHtml += `<p style="margin-top: 8px;"><strong>Pronunciation:</strong> ${aiData.pronunciation}</p>`;
                 if (aiData.meaning) aiHtml += `<p style="margin-top: 8px;"><strong>Meaning:</strong> ${aiData.meaning}</p>`;
                 if (aiData.phrases) aiHtml += `<p style="margin-top: 8px;"><strong>Phrases:</strong> ${aiData.phrases}</p>`;
                 if (aiData.synonyms) aiHtml += `<p style="margin-top: 8px;"><strong>Synonyms:</strong> ${aiData.synonyms}</p>`;
@@ -894,8 +895,8 @@ function displayWordResult(data) {
                 
                 document.getElementById('aiMnemonic').innerHTML = aiHtml;
                 document.getElementById('aiExamples').innerHTML = aiData.examples.map(ex => `<span class="tag tag-selectable selected" data-save-type="ai_ex" data-value="${ex}" onclick="toggleTagSelect(this)">${ex}</span>`).join('');
-                STATE._allAiExamples = aiData.examples;
                 STATE.currentWord.aiMnemonic = aiData.mnemonic;
+                STATE.currentWord.aiPronunciation = aiData.pronunciation;
                 STATE.currentWord.aiMeaning = aiData.meaning;
                 STATE.currentWord.aiPhrases = aiData.phrases;
                 STATE.currentWord.aiSynonyms = aiData.synonyms;
@@ -1128,7 +1129,13 @@ function saveCurrentWord() {
             newRelatedTopics.push('<strong>AI source:</strong> ' + STATE.currentWord.aiRelatedTopics);
         }
         existing.relatedTopics = mergeUnique(existing.relatedTopics, newRelatedTopics);
-        if (STATE.currentWord.phonetic && !existing.phonetic) existing.phonetic = STATE.currentWord.phonetic;
+        
+        if (STATE.currentWord.aiPronunciation && !(existing.phonetic || '').includes('AI source:')) {
+            existing.phonetic = (existing.phonetic ? existing.phonetic + ' <br/><br/> ' : '') + '<strong>AI source:</strong> ' + STATE.currentWord.aiPronunciation;
+        } else if (STATE.currentWord.phonetic && !existing.phonetic) {
+            existing.phonetic = STATE.currentWord.phonetic;
+        }
+        
         if (STATE.currentWord.audio && !existing.audio) existing.audio = STATE.currentWord.audio;
         if (STATE.currentWord.aiMnemonic && !existing.aiMnemonic) existing.aiMnemonic = STATE.currentWord.aiMnemonic;
         // Track multiple sources
@@ -1164,10 +1171,15 @@ function saveCurrentWord() {
     const relatedTopics = [...(STATE._relatedTopics || [])];
     if (STATE.currentWord.aiRelatedTopics) relatedTopics.push('<strong>AI source:</strong> ' + STATE.currentWord.aiRelatedTopics);
 
+    let phonetic = STATE.currentWord.phonetic || selected.phonetic || '';
+    if (STATE.currentWord.aiPronunciation) {
+        phonetic = (phonetic ? phonetic + ' <br/><br/> ' : '') + '<strong>AI source:</strong> ' + STATE.currentWord.aiPronunciation;
+    }
+
     const source = document.getElementById('sourceSelect').value;
     const entry = {
         word: STATE.currentWord.word,
-        phonetic: STATE.currentWord.phonetic || '',
+        phonetic: phonetic,
         partOfSpeech: selected.partOfSpeech || '',
         meaning: meaning,
         example: example,
@@ -1206,9 +1218,11 @@ Please provide the following to help me learn this word deeply:
 5. A list of 3 synonyms for the word.
 6. A list of 3 antonyms for the word.
 7. A list of 3 to 5 related topics, fields, or categories the word belongs to.
+8. The word's pronunciation or phonetic spelling (e.g. IPA or simple syllables) and syllable breakdown.
 
 Format your response exactly like this:
 Mnemonic: [your mnemonic here]
+Pronunciation: [pronunciation here]
 Meaning: [your meaning here]
 Examples: [example 1] | [example 2]
 Phrases: [phrase 1], [phrase 2], [phrase 3]
@@ -1282,6 +1296,7 @@ Related Topics: [topic 1], [topic 2], [topic 3]`;
 
         const lines = result.split('\n');
         let mnemonic = '';
+        let pronunciation = '';
         let meaning = '';
         let phrases = '';
         let synonyms = '';
@@ -1292,6 +1307,8 @@ Related Topics: [topic 1], [topic 2], [topic 3]`;
         for (const line of lines) {
             if (line.toLowerCase().startsWith('mnemonic:')) {
                 mnemonic = line.substring(9).trim();
+            } else if (line.toLowerCase().startsWith('pronunciation:')) {
+                pronunciation = line.substring(14).trim();
             } else if (line.toLowerCase().startsWith('meaning:')) {
                 meaning = line.substring(8).trim();
             } else if (line.toLowerCase().startsWith('phrases:')) {
@@ -1313,7 +1330,7 @@ Related Topics: [topic 1], [topic 2], [topic 3]`;
             }
         }
 
-        return { mnemonic, meaning, phrases, synonyms, antonyms, relatedTopics, examples };
+        return { mnemonic, pronunciation, meaning, phrases, synonyms, antonyms, relatedTopics, examples };
 
     } catch (error) {
         console.error('AI error:', error);
