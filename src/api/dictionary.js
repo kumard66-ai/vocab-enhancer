@@ -1190,10 +1190,10 @@ function saveCurrentWord() {
 }
 
 async function generateAIContext(params) {
-    const { provider, modelName: customModelName, apiKey, customUrl, word, meanings } = params;
+    const { provider = 'gemini-1.5-flash', modelName: customModelName, apiKey, customUrl, word, meanings } = params;
     
     if (!provider || !apiKey || !word) {
-        return { error: 'Missing required parameters (provider, apiKey, word)' };
+        return { error: `Missing parameters (provider:${!!provider}, apiKey:${!!apiKey}, word:${!!word})` };
     }
 
     const meaningsText = meanings.map(m => m.definitions[0]?.definition).join('; ');
