@@ -86,7 +86,8 @@ function showCard(index) {
     if (!card) return;
 
     STATE.currentFcIndex = index;
-    document.getElementById('fcCurrent').textContent = index + 1;
+    const currentEl = document.getElementById('fcCurrent');
+    if (currentEl) currentEl.textContent = index + 1;
 
     const progress = ((index + 1) / STATE.currentFlashcards.length) * 100;
     document.getElementById('fcProgressFill').style.width = progress + '%';
@@ -265,8 +266,10 @@ function fcLookupWord(e) {
     if (card) {
         if (fcOverlay.classList.contains('active')) toggleFullscreenFlashcard();
         document.querySelector('.nav-links a[data-tab="search"]').click();
-        document.getElementById('searchInput').value = card.word;
-        document.getElementById('searchBtn').click();
+        const searchInput = document.getElementById('wordInput');
+        if (searchInput) searchInput.value = card.word;
+        const searchBtn = document.getElementById('searchBtn');
+        if (searchBtn) searchBtn.click();
     }
 }
 
