@@ -306,6 +306,13 @@ function updateRatingHighlight(mastery) {
         activeBtn.style.transform = 'scale(1.15)';
         activeBtn.style.transition = 'all 0.2s ease-in-out';
     }
+
+    // Give the flashcard itself a matching border for better visibility in fullscreen
+    const flashcardEl = document.getElementById('flashcard');
+    if (flashcardEl) {
+        flashcardEl.style.border = `3px solid ${activeColor}`;
+        flashcardEl.style.boxShadow = `0 0 20px ${activeColor}40`; // 40 is hex for 25% opacity
+    }
 }
 
 function updateFlashcardTheme() {
@@ -321,8 +328,14 @@ function toggleFullscreenFlashcard(e) {
     if (e) e.stopPropagation();
     const fc = document.getElementById('flashcard');
     const overlay = document.getElementById('fcOverlay');
+    const controls = document.querySelector('.fc-controls');
+    
     fc.classList.toggle('flashcard-fullscreen');
     overlay.classList.toggle('active');
+    
+    if (controls) {
+        controls.classList.toggle('fc-controls-fullscreen');
+    }
 }
 
 function fcLookupWord(e) {
