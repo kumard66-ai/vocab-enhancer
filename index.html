@@ -157,52 +157,61 @@
 
         <!-- History Section -->
         <section id="history" class="section">
-            <div class="section-header">
-                <h1>Word History</h1>
-                <p>All your saved words in one place</p>
+            <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom: 15px;">
+                <div>
+                    <h1 style="margin-bottom:0.2rem;">Word History</h1>
+                    <p style="margin:0;">All your saved words in one place</p>
+                </div>
+                <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap; margin-top:10px;">
+                    <button id="copyExcel" class="btn btn-outline btn-sm">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                    <button id="exportExcel" class="btn btn-success btn-sm">
+                        <i class="fas fa-file-excel"></i> Export
+                    </button>
+                    <label class="btn btn-outline btn-sm" style="cursor:pointer; display:inline-flex; align-items:center; gap:0.5rem; margin:0;">
+                        <i class="fas fa-file-import"></i> Import
+                        <input type="file" id="importExcelFile" accept=".xlsx, .xls, .csv" hidden>
+                    </label>
+                    <button id="clearHistory" class="btn btn-danger btn-sm">
+                        <i class="fas fa-trash"></i> Clear All
+                    </button>
+                </div>
             </div>
 
-            <div class="history-toolbar">
-                <div class="search-filter">
-                    <input type="text" id="historySearch" placeholder="Filter words...">
-                    <select id="historyFilter">
-                        <option value="all">All Parts of Speech</option>
+            <div class="history-toolbar" style="margin-bottom: 15px;">
+                <div class="search-filter" style="display:flex; gap:0.5rem; align-items:center; flex-wrap:nowrap; width:100%; overflow-x:auto; padding-bottom:5px;">
+                    <input type="text" id="historySearch" placeholder="Filter words..." style="flex:1; min-width:120px; padding:0.4rem; font-size:0.85rem;">
+                    
+                    <select id="historyFilter" style="padding:0.4rem; font-size:0.85rem; width:auto;">
+                        <option value="all">All POS</option>
                         <option value="noun">Nouns</option>
                         <option value="verb">Verbs</option>
                         <option value="adjective">Adjectives</option>
                         <option value="adverb">Adverbs</option>
                     </select>
-                    <select id="historyMasteryFilter" style="margin-left: 10px;">
-                        <option value="all">All Mastery Levels</option>
-                        <option value="dont_know">Don't know (Red)</option>
-                        <option value="somewhat">Somewhat know (Yellow)</option>
-                        <option value="well">Know well (Green)</option>
+                    
+                    <select id="historyMasteryFilter" style="padding:0.4rem; font-size:0.85rem; width:auto;">
+                        <option value="all">All Scores</option>
+                        <option value="dont_know">Don't know</option>
+                        <option value="somewhat">Somewhat know</option>
+                        <option value="well">Know well</option>
                     </select>
-                    <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; margin: 0; font-size: 0.9rem;">
-                        <input type="checkbox" id="historyNoMeaningFilter">
-                        Without Meaning
+
+                    <label style="display:flex; align-items:center; gap:0.2rem; cursor:pointer; margin:0; font-size:0.85rem; white-space:nowrap;">
+                        <input type="checkbox" id="historyNoMeaningFilter"> No Meaning
                     </label>
-                    <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px;">
-                        <input type="date" id="historyDateFrom" class="input" style="padding: 0.4rem;" title="From Date">
-                        <span style="color: var(--text-muted);">-</span>
-                        <input type="date" id="historyDateTo" class="input" style="padding: 0.4rem;" title="To Date">
-                        <input type="number" id="historySnoFrom" class="input" style="padding: 0.4rem; width: 80px;" placeholder="From S.No" min="1" title="From Serial No.">
-                        <span style="color: var(--text-muted);">-</span>
-                        <input type="number" id="historySnoTo" class="input" style="padding: 0.4rem; width: 80px;" placeholder="To S.No" min="1" title="To Serial No.">
-                        <div style="width: 1rem;"></div> <!-- Spacer -->
-                        <button id="copyExcel" class="btn btn-outline btn-sm">
-                            <i class="fas fa-copy"></i> Copy for Excel
-                        </button>
-                        <button id="exportExcel" class="btn btn-success btn-sm">
-                            <i class="fas fa-file-excel"></i> Export Excel
-                        </button>
-                        <label class="btn btn-outline btn-sm" style="cursor:pointer; display:inline-flex; align-items:center; gap:0.5rem; margin-bottom:0;">
-                            <i class="fas fa-file-import"></i> Import Excel
-                            <input type="file" id="importExcelFile" accept=".xlsx, .xls, .csv" hidden>
-                        </label>
-                        <button id="clearHistory" class="btn btn-danger btn-sm">
-                            <i class="fas fa-trash"></i> Clear All
-                        </button>
+                    
+                    <div style="display:flex; align-items:center; gap:0.2rem; white-space:nowrap;">
+                        <input type="date" id="historyDateFrom" class="input" style="padding:0.4rem; font-size:0.85rem; width:110px;" title="From Date">
+                        <span style="color:var(--text-muted);">-</span>
+                        <input type="date" id="historyDateTo" class="input" style="padding:0.4rem; font-size:0.85rem; width:110px;" title="To Date">
+                    </div>
+                    
+                    <div style="display:flex; align-items:center; gap:0.2rem; white-space:nowrap;">
+                        <input type="number" id="historySnoFrom" class="input" style="padding:0.4rem; width:60px; font-size:0.85rem;" placeholder="S.No" min="1" title="From Serial No.">
+                        <span style="color:var(--text-muted);">-</span>
+                        <input type="number" id="historySnoTo" class="input" style="padding:0.4rem; width:60px; font-size:0.85rem;" placeholder="S.No" min="1" title="To Serial No.">
                     </div>
                 </div>
             </div>
