@@ -1,5 +1,6 @@
 import { STATE, saveStateToLocal, saveWords } from '../state.js';
 import { showToast, formatDate, truncate } from '../utils.js';
+import * as XLSX from 'xlsx';
 import { searchWord, initAutocomplete, getSourceUrl, getSourceLabel } from '../api/dictionary.js';
 import { saveImage, getImage, deleteImage } from '../services/imageStore.js';
 
