@@ -29,6 +29,27 @@ async function createZip() {
 
         zip.writeZip(outPath);
         console.log("Extension zip created successfully at " + outPath);
+        
+        // Also create source zip
+        const sourceZip = new AdmZip();
+        const sourceOutPath = path.join(__dirname, 'dist', 'vocab-enhancer-source.zip');
+        console.log(`Zipping source to ${sourceOutPath}...`);
+        
+        fs.readdirSync(__dirname).forEach(file => {
+            // Exclude node_modules, dist, .git, and zip files
+            if (file !== 'node_modules' && file !== 'dist' && file !== '.git' && !file.endsWith('.zip')) {
+                const fullPath = path.join(__dirname, file);
+                if (fs.statSync(fullPath).isDirectory()) {
+                    sourceZip.addLocalFolder(fullPath, file);
+                } else {
+                    sourceZip.addLocalFile(fullPath);
+                }
+            }
+        });
+        
+        sourceZip.writeZip(sourceOutPath);
+        console.log("Source zip created successfully at " + sourceOutPath);
+        
     } catch (err) {
         console.error("Error creating zip:", err);
     }

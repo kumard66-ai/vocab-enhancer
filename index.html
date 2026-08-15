@@ -41,6 +41,9 @@
             <a href="#stats" class="nav-link" data-section="stats">
                 <i class="fas fa-chart-bar"></i> Stats<span id="navMemoryBadge" class="nav-badge memory-badge"></span>
             </a>
+            <a href="#install" class="nav-link" data-section="install">
+                <i class="fas fa-download"></i> Install
+            </a>
         </div>
         <div class="nav-right">
             <div id="userArea" class="user-area">
@@ -847,6 +850,55 @@
                 <div class="mastery-bars" id="masteryBars"></div>
             </div>
         </section>
+
+        <!-- Install Section -->
+        <section id="install" class="section hidden">
+            <div class="section-header">
+                <h1><i class="fas fa-download"></i> Download & Install</h1>
+                <p>Get VocabVault as a Chrome Extension or run it locally</p>
+            </div>
+            
+            <div class="install-grid">
+                <!-- Chrome Extension -->
+                <div class="card" style="padding: 2rem; text-align: left;">
+                    <div style="text-align: center; margin-bottom: 1.5rem;">
+                        <i class="fab fa-chrome" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
+                        <h2 style="margin-bottom: 0.5rem;">Chrome Extension</h2>
+                        <a href="vocab-enhancer-extension.zip" download class="btn btn-primary" style="display: inline-block; margin-top: 1rem;"><i class="fas fa-download"></i> Download Extension (.zip)</a>
+                    </div>
+                    <h3 style="margin: 1.5rem 0 0.5rem; font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">Installation Steps:</h3>
+                    <ol style="padding-left: 1.5rem; line-height: 1.6; color: var(--text-muted);">
+                        <li>Download the <strong>Extension (.zip)</strong> using the button above.</li>
+                        <li>Extract/unzip the downloaded file to a folder on your computer.</li>
+                        <li>Open Google Chrome and navigate to <strong>chrome://extensions/</strong> in the address bar.</li>
+                        <li>Turn on <strong>Developer mode</strong> (toggle switch in the top right corner).</li>
+                        <li>Click the <strong>Load unpacked</strong> button that appears in the top left.</li>
+                        <li>Select the folder where you extracted the zip file.</li>
+                        <li>VocabVault will be installed! Pin it to your toolbar for easy access.</li>
+                    </ol>
+                </div>
+
+                <!-- Local Setup -->
+                <div class="card" style="padding: 2rem; text-align: left;">
+                    <div style="text-align: center; margin-bottom: 1.5rem;">
+                        <i class="fas fa-laptop-code" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
+                        <h2 style="margin-bottom: 0.5rem;">Run Locally (Dev)</h2>
+                        <a href="vocab-enhancer-source.zip" download class="btn btn-outline" style="display: inline-block; margin-top: 1rem;"><i class="fas fa-code"></i> Download Source (.zip)</a>
+                    </div>
+                    <h3 style="margin: 1.5rem 0 0.5rem; font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">Setup Instructions:</h3>
+                    <ol style="padding-left: 1.5rem; line-height: 1.6; color: var(--text-muted);">
+                        <li>Ensure you have <a href="https://nodejs.org/" target="_blank" style="color: var(--primary);">Node.js</a> installed on your machine.</li>
+                        <li>Download the <strong>Source (.zip)</strong> using the button above.</li>
+                        <li>Extract the zip file to a folder.</li>
+                        <li>Open a terminal or command prompt inside that folder.</li>
+                        <li>Run the command: <code style="background: var(--bg-body); padding: 0.2rem 0.4rem; border-radius: 4px;">npm install</code> to install dependencies.</li>
+                        <li>Run the command: <code style="background: var(--bg-body); padding: 0.2rem 0.4rem; border-radius: 4px;">npm run dev</code> to start the local server.</li>
+                        <li>Open the displayed Local URL (usually http://localhost:5173) in your browser.</li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+
     </main>
 
     <!-- Edit Word Modal -->

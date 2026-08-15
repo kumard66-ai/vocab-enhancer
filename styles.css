@@ -1494,6 +1494,13 @@ body {
     75% { transform: translateX(5px); }
 }
 
+.install-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
 .results-circle {
     width: 120px;
     height: 120px;
@@ -2210,6 +2217,11 @@ body {
     .matching-columns {
         grid-template-columns: 1fr;
         gap: 1rem;
+    }
+
+    .install-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
     }
 
     .flashcard {
