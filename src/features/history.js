@@ -49,6 +49,8 @@ export function initHistory() {
 
     document.getElementById('historySearch').addEventListener('input', renderHistory);
     document.getElementById('historyFilter').addEventListener('change', renderHistory);
+    const masteryFilter = document.getElementById('historyMasteryFilter');
+    if (masteryFilter) masteryFilter.addEventListener('change', renderHistory);
     document.getElementById('historyNoMeaningFilter').addEventListener('change', renderHistory);
     document.getElementById('exportExcel').addEventListener('click', exportToExcel);
     document.getElementById('importExcelFile').addEventListener('change', importExcel);
@@ -117,6 +119,7 @@ export function initHistory() {
 function renderHistory() {
     const search = document.getElementById('historySearch').value.toLowerCase();
     const filter = document.getElementById('historyFilter').value;
+    const masteryFilter = document.getElementById('historyMasteryFilter') ? document.getElementById('historyMasteryFilter').value : 'all';
     const dateFrom = document.getElementById('historyDateFrom')?.value;
     const dateTo = document.getElementById('historyDateTo')?.value;
     const tbody = document.getElementById('historyBody');
@@ -128,6 +131,12 @@ function renderHistory() {
     let filtered = STATE.words.filter(w => {
         const matchSearch = w.word.toLowerCase().includes(search) || (w.meaning || '').toLowerCase().includes(search);
         const matchFilter = filter === 'all' || w.partOfSpeech === filter;
+        
+        let matchMastery = true;
+        const wMastery = w.mastery || 'new';
+        if (masteryFilter === 'dont_know') matchMastery = (wMastery === 'new');
+        else if (masteryFilter === 'somewhat') matchMastery = (wMastery === 'learning' || wMastery === 'familiar');
+        else if (masteryFilter === 'well') matchMastery = (wMastery === 'mastered');
         
         let matchNoMeaning = true;
         if (noMeaningFilter) {
@@ -141,7 +150,7 @@ function renderHistory() {
             if (dateTo && wordDate > dateTo) matchDate = false;
         }
 
-        return matchSearch && matchFilter && matchNoMeaning && matchDate;
+        return matchSearch && matchFilter && matchMastery && matchNoMeaning && matchDate;
     });
 
     // Sort
