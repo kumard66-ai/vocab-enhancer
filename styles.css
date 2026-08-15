@@ -628,11 +628,18 @@ body {
     vertical-align: top;
     padding: 0.6rem 0.5rem;
     border: 1px solid var(--border);
-    overflow: hidden;
-    text-overflow: ellipsis;
+}
+
+#historyTable td {
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
 
 #historyTable th {
+    overflow: hidden;
+    text-overflow: ellipsis;
     background: var(--bg-hover);
     font-weight: 600;
     color: var(--text-secondary);
@@ -685,8 +692,7 @@ body {
     z-index: 3;
 }
 
-#historyTable td:nth-child(6),
-#historyTable td:nth-child(7) {
+#historyTable td {
     word-wrap: break-word;
     overflow-wrap: break-word;
     white-space: normal;
