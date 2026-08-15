@@ -20,5 +20,5 @@ firebase.initializeApp(firebaseConfig);
 export const auth = firebase.auth();
 export const db = firebase.firestore();
 
-// Google Auth Provider
-export const googleProvider = new firebase.auth.GoogleAuthProvider();
+// Google Auth Provider (Lazy load to prevent CSP errors in Chrome Extension)
+export const getGoogleProvider = () => new firebase.auth.GoogleAuthProvider();

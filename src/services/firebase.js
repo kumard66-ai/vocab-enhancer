@@ -1,4 +1,4 @@
-import { auth, db, googleProvider } from './firebase-config.js';
+import { auth, db, getGoogleProvider } from './firebase-config.js';
 import { STATE, saveStateToLocal } from '../state.js';
 import { showToast } from '../utils.js';
 import firebase from 'firebase/compat/app';
@@ -39,7 +39,7 @@ export async function signInWithGoogle() {
             });
         } else {
             // Local web development environment
-            await auth.signInWithPopup(googleProvider);
+            await auth.signInWithPopup(getGoogleProvider());
         }
     } catch (err) {
         if (err.code !== 'auth/popup-closed-by-user') {
