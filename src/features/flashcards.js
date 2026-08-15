@@ -8,6 +8,7 @@ export function initFlashcards() {
     document.getElementById('generateCards').addEventListener('click', generateFlashcards);
     document.getElementById('fcPrev').addEventListener('click', prevCard);
     document.getElementById('fcNext').addEventListener('click', nextCard);
+    document.getElementById('fcFlipBtn').addEventListener('click', flipCard);
     document.getElementById('flashcard').addEventListener('click', flipCard);
     document.getElementById('fcPronounceUS').addEventListener('click', (e) => { e.stopPropagation(); fcPronounce('us'); });
     document.getElementById('fcPronounceUK').addEventListener('click', (e) => { e.stopPropagation(); fcPronounce('uk'); });
