@@ -866,6 +866,11 @@ function displayWordResult(data) {
 
     // Trigger AI Generation if enabled
     const aiBlock = document.getElementById('aiResultBlock');
+    
+    // Hide AI image container on new search
+    const aiImgContainer = document.getElementById('aiImageContainer');
+    if (aiImgContainer) aiImgContainer.classList.add('hidden');
+
     if (STATE.llmSettings && STATE.llmSettings.apiKey) {
         aiBlock.classList.remove('hidden');
         document.getElementById('aiLoadingSpinner').classList.remove('hidden');
@@ -895,6 +900,16 @@ function displayWordResult(data) {
                 
                 document.getElementById('aiMnemonic').innerHTML = aiHtml;
                 document.getElementById('aiExamples').innerHTML = aiData.examples.map(ex => `<span class="tag tag-selectable selected" data-save-type="ai_ex" data-value="${ex}" onclick="toggleTagSelect(this)">${ex}</span>`).join('');
+                
+                // Fetch AI Image based on mnemonic
+                const aiImgContainer = document.getElementById('aiImageContainer');
+                const aiImg = document.getElementById('aiImage');
+                if (aiImgContainer && aiImg && aiData.mnemonic) {
+                    const prompt = encodeURIComponent(`A vivid, memorable illustration to help learn the English word "${data.word}". Meaning: ${aiData.meaning}. Mnemonic hook: ${aiData.mnemonic}`);
+                    aiImg.src = `https://image.pollinations.ai/prompt/${prompt}?width=512&height=512&nologo=true`;
+                    aiImgContainer.classList.remove('hidden');
+                }
+
                 STATE.currentWord.aiMnemonic = aiData.mnemonic;
                 STATE.currentWord.aiPronunciation = aiData.pronunciation;
                 STATE.currentWord.aiMeaning = aiData.meaning;
